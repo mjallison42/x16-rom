@@ -2171,7 +2171,7 @@ filename_prompt      .byte "FNAME: ", 0
 str_main_label       .byte "MAIN", 0
 str_add_label_prompt .byte "NEW LABEL: ", 0
 
-version_string       .byte "CODEX ASSEMBLY ENVIRONMENT V0.90", CR
+version_string       .byte "CODEX ASSEMBLY ENVIRONMENT V0.91", CR
 	.ifdef DEV
 rls_090_0            .byte "                 ", SCR_BULLET, " ROM'ED", CR
 rls_090_1            .byte "                 ", SCR_BULLET, " SIZE TRIM", CR

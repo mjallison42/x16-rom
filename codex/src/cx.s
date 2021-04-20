@@ -2185,7 +2185,6 @@ str_loading_pgm      .byte "LOADING PROGRAM: ", 0
 str_loading_dbg      .byte "LOADING .DBG", 0
 str_loading_dbi      .byte ", .DBI", 0
 str_loading_done     .byte "SUCCESSFUL LOAD", 0
-str_saving_pgm       .byte "SAVING PROGRAM: ",0
 str_saving_dbg       .byte "SAVING DEBUG  : ", 0
 str_ext_dbg          .byte ".DBG", 0
 str_ext_dbi          .byte ".DBI", 0
@@ -2292,12 +2291,12 @@ file_save
 	dex
 	jsr        prtspaceto
 
-	ldx        #HDR_COL
-	ldy        5
-	callR1     prtstr_at_xy,str_saving_pgm
-
-	callR1     prtstr,input_string
-
+	; Position cursor so the save message is printed in the correct spot
+	ldy        #HDR_COL
+	ldx        5
+	clc
+	kerjsr     PLOT
+	
 	;;
 	;; Save program code
 	;;

@@ -525,7 +525,7 @@ asm_dispatch_table
 	.word   asm_addr      ; F1
 	.word   asm_del_inst  ; F3
 	.word   asm_add_label ; F5
-	.word   0             ; F7
+	.word   asm_define    ; F7
 	.word   asm_add_inst  ; F2
 	.word   asm_edit_inst ; F4
 	.word   asm_del_label ; F6
@@ -581,11 +581,38 @@ asm_add_label
 	
 	MoveW      assy_selected_instruction,r2
 	jsr        meta_add_label
+	
+asm_add_normal_exit
 	lda        #1
 	jsr        set_dirty
-
 :  
 	clc
+	rts
+
+	;;
+	;; Define a symbol value
+	;;
+asm_define
+	stz        input_string
+	callR1R2   read_string_with_prompt,str_define_prompt,0
+	lda        #' '
+	jsr        util_split_string     ; R1 still set to point to input_string
+	PushW      r1
+	MoveW      r2,r1
+	jsr        util_trim_string
+	jsr        util_parse_hex
+   bcs        @asm_define_parse_error
+	MoveW      r1,r2
+	PopW       r1
+	jsr        meta_add_label
+	bcc        asm_add_normal_exit
+@asm_define_can_not_add
+	LoadW      ERR_MSG,str_can_not_add
+	rts
+
+@asm_define_parse_error
+	PopW       r1
+	LoadW      ERR_MSG,str_bad_address
 	rts
 
 ;;;
@@ -881,7 +908,7 @@ asm_edit_inst
 	jsr        util_strcpy ; stash the newly editing string for the second pass
 	jsr        encode_string
 	bcc        @asm_edit_no_error1
-	jmp        @asm_edit_inst_error
+	jmp        asm_edit_inst_error
 	
 @asm_edit_no_error1
 	;; Setup r1 for shorten/lengthen code
@@ -931,7 +958,7 @@ asm_edit_inst
 	clc
 	rts
 
-@asm_edit_inst_error
+asm_edit_inst_error
 	LoadW      ERR_MSG,str_syntax_fail
 	pla
 	clc                
@@ -2161,21 +2188,20 @@ main_header          .byte " FILE VIEW ASM  RUN              WATC EXIT", 0
 break_header         .byte "      VIEW      CONT STEP  STIN  WATC STOP", 0
 file_header          .byte " NEW  LOAD SAVE TEXT                  BACK", 0
 view_header          .byte " MEM  SCRN  SYMB                      BACK", 0
-asm_header           .byte " ADDR +INS -INS EDIT +LAB -LAB        BACK", 0
+asm_header           .byte " ADDR +INS -INS EDIT +LAB -LAB   DEFN BACK", 0
 watch_header         .byte " BYTE WORD CSTR PSTR        DEL       BACK", 0
 
 
 str_addr_prompt      .byte "ADDRESS: ", 0
-str_bad_address      .byte "BAD ADDRESS VALUE", 0
+str_bad_address      .byte "BAD VALUE", 0
 filename_prompt      .byte "FNAME: ", 0
 str_main_label       .byte "MAIN", 0
 str_add_label_prompt .byte "NEW LABEL: ", 0
+str_define_prompt    .byte "DEFINE: ", 0	
 
-version_string       .byte "CODEX ASSEMBLY ENVIRONMENT V0.91", CR
+version_string       .byte "CODEX V0.91", CR
 	.ifdef DEV
-rls_090_0            .byte "                 ", SCR_BULLET, " ROM'ED", CR
-rls_090_1            .byte "                 ", SCR_BULLET, " SIZE TRIM", CR
-rls_090_2            .byte "                 ", SCR_BULLET, " EXTERN DECOMPILE", 0
+rls_091_0            .byte "                 ", SCR_BULLET, " BUGS FIXED", CR
 	.else
 	                  .byte 0
 	.endif
@@ -2184,7 +2210,7 @@ str_press_2_continue .byte "PRESS A KEY TO CONTINUE...", 0
 str_loading_pgm      .byte "LOADING PROGRAM: ", 0
 str_loading_dbg      .byte "LOADING .DBG", 0
 str_loading_dbi      .byte ", .DBI", 0
-str_loading_done     .byte "SUCCESSFUL LOAD", 0
+str_loading_done     .byte "SUCCESS", 0
 str_saving_dbg       .byte "SAVING DEBUG  : ", 0
 str_ext_dbg          .byte ".DBG", 0
 str_ext_dbi          .byte ".DBI", 0
@@ -2200,12 +2226,13 @@ str_register_x       .byte " X   ", 0
 str_register_y       .byte " Y   ", 0 
 str_register_sp      .byte " SP  ", 0
 str_syntax_fail      .byte "INVALID SYNTAX", 0
+str_can_not_add      .byte "CAN'T ADD", 0
 str_region_start     .byte "PRGM REGION[$", 0
 str_region_end       .byte "]", CR, 0
 str_empty            .byte 0
 
 	.ifdef DEV
-str_65c02_required   .byte "ERROR: 65C02 CPU REQUIRED!", CR, 0
+str_65c02_required   .byte "ERROR: 65C02 REQUIRED!", CR, 0
 	.endif
 
 ;;; -------------------------------------------------------------------------------------

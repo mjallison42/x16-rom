@@ -157,7 +157,7 @@ util_parse_hex
 	stz      TMP1H
 
 	ldy      #0
-	      
+
 @util_parse_loop
 	lda     (r1),y
 	beq     @util_parse_hex_exit

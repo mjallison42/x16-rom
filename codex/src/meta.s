@@ -643,9 +643,16 @@ meta_relocate_labels
 
 	;; Increment to next entry
 @meta_relocate_incr
-	lda      TMP2L
-	ora      TMP2H
+	ldy      #0
+	lda      (TMP1),y
+	iny
+	ora      (TMP1),y
+	iny
+	ora      (TMP1),y
+	iny
+	ora      (TMP1),y
 	beq      @meta_relocate_loop_exit
+	
 	lda      TMP1L
 	clc
 	adc      #4
@@ -677,8 +684,12 @@ meta_lookup_label
 	lda      (TMP1),y
 	iny
 	ora      (TMP1),y
-	beq      meta_error
 	iny
+	ora      (TMP1),y
+	iny
+	ora      (TMP1),y
+	beq      meta_error
+	dey
 	            
 	PushW    r2
 	lda      (TMP1),y

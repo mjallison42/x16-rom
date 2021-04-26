@@ -65,6 +65,13 @@
 	T2H=$27
 	T2=$26
 
+	.macro pushBank b
+	lda    BANK_CTRL_RAM
+	pha
+	lda    #b
+	sta    BANK_CTRL_RAM
+	.endmacro
+
 	
 	.byte $42, $42, $42, $42
 main_entry
@@ -1455,6 +1462,12 @@ testEncoder
 	callR1            encode_string,str_tmp
 	assertCarryClear  str_no_fail_arg
 	assertBuffer3     str_bit_rel, $bf, $02, $0d
+
+	LoadW             encode_pc,$a000
+	callR1            copyString,str_jsr
+	callR1            encode_string,str_tmp
+	assertCarryClear  str_no_fail_arg
+	assertBuffer3     str_jsr, $20, $00, $10
 	      
 @testEncoderMnemonicExit
 	rts
@@ -1517,7 +1530,7 @@ str_abs_x_ind     .byte     "JMP ($5354,X)", 0
 str_branch        .byte     "BRA $A010", 0
 str_bit_zp        .byte     "SMB 3,$02", 0
 str_bit_rel       .byte     "BBS 3,$02,$A010", 0
-
+str_jsr           .byte     "JSR $1000", 0
 ;;
 ;; Special assert for this test
 ;; Input X   - byte Count
@@ -2068,7 +2081,6 @@ str_edit_header    .byte "CODE EDIT", CR, 0
 str_rgn_end_adjust .byte "REGION END ADJUSTMENT", CR, 0
 str_push_value     .byte "INSERT COPY VALUES", CR, 0
 str_pull_value     .byte "DELETE COPY VALUES", CR, 0
-str_edit_reloc_jsr .byte "JSR DEST ADDR RELOC", CR, 0
 
 ;; editor buffer space
 edit_region_start .res EDIT_RGN_SIZE,0

@@ -954,7 +954,6 @@ encode_parse_arguments
 	bne         @encode_parse_scan_loop
 
 	tya
-	cmp         #0
 	bne         @encode_parse_check2
 	      
 	;; Empty string means implied address
@@ -977,7 +976,6 @@ encode_parse_arguments
 
 @encode_parse_check3
 	;; Look for parens, indicating indirect ($,x) or ($zp)
-	lda          (r1)
 	cmp          #'('
 	bne          @encode_parse_check4
 

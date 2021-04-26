@@ -11,11 +11,6 @@
 	.importzp BANK_CTRL_ROM, BANK_CTRL_RAM, KERNAL_ROM, CX_ROM
 	.import bank_initialize, bank_pop, bank_push
 
-	.macro pushBank b
-	lda      #b
-	jsr      bank_push
-	.endmacro
-
 	.macro pushBankVar b
 	lda      b
 	jsr      bank_push

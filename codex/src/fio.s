@@ -71,16 +71,16 @@ error_table
 	.word ERR_MISSING_FN          ; 8
 	.word ERR_BAD_DEV_NUM         ; 9
 
-ERR_NONE         .byte "NO ERROR", 0
+ERR_NONE         .byte 0                         ; NO ERROR
 ERR_TOO_MANY     .byte "TOO MANY FILES", 0
 ERR_OPEN         .byte "FILE ALREADY OPEN", 0
 ERR_NOT_OPEN     .byte "FILE NOT OPEN", 0
 ERR_NOT_FND      .byte "FILE NOT FOUND", 0
-ERR_NOT_PRESENT  .byte "DEVICE NOT PRESENT", 0
-ERR_NOT_INPUT    .byte "NOT AN INPUT FILE", 0
-ERR_NOT_OUTPUT   .byte "NOT AN OUTPUT FILE", 0
-ERR_MISSING_FN   .byte "MISSING FILE NAME", 0
-ERR_BAD_DEV_NUM  .byte "BAD DEVICE NUMBER", 0
+ERR_NOT_PRESENT  .byte "DEV NOT PRESENT", 0      ; DEV NOT PRESENT
+ERR_NOT_INPUT    .byte "NOT INPUT FILE", 0       ; NOT AN INPUT FILE
+ERR_NOT_OUTPUT   .byte "NOT OUTPUT FILE", 0      ; NOT AN OUTPUT FILE
+ERR_MISSING_FN   .byte "MISSING FNAME", 0        ; MISSING FILE NAME
+ERR_BAD_DEV_NUM  .byte "BAD DEV NUMBER", 0       ; BAD DEVICE NUMBER
 	
 file_open_seq_read_str  .byte ",S,R", 0
 file_open_seq_write_str .byte ",S,W", 0

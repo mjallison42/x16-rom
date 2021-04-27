@@ -110,11 +110,11 @@ util_strcmp
 	bne   @util_strcmp_check
 
 @util_strcmp_exit
-	lda   #0                      ; Z = 1, found means matched
+	lda   #SUCCESS                      ; Z = 1, found means matched
 	rts
 
 @util_strcmp_exit_less
-	lda   #1
+	lda   #FAIL
 	rts
 	      
 @util_strcmp_exit_greater

@@ -2183,7 +2183,7 @@ logo2_buffer
 
 	.endif
 	
-fn_header            .byte " F1   F2   F3   F4   F5    F6    F7   F8         HI MEMORY = ", 0
+fn_header            .byte " F1   F2   F3   F4   F5    F6    F7   F8         RAM BANK = ", 0
 main_header          .byte " FILE VIEW ASM  RUN              WATC EXIT", 0
 break_header         .byte "      VIEW      CONT STEP  STIN  WATC STOP", 0
 file_header          .byte " NEW  LOAD SAVE TEXT                  BACK", 0
@@ -2206,12 +2206,12 @@ rls_091_0            .byte "                 ", SCR_BULLET, " BUGS FIXED", CR
 	                  .byte 0
 	.endif
 
-str_press_2_continue .byte "PRESS A KEY TO CONTINUE...", 0
+str_press_2_continue .byte "PRESS KEY TO CONTINUE...", 0
 str_loading_pgm      .byte "LOADING PROGRAM: ", 0
 str_loading_dbg      .byte "LOADING .DBG", 0
 str_loading_dbi      .byte ", .DBI", 0
 str_loading_done     .byte "SUCCESS", 0
-str_saving_dbg       .byte "SAVING DEBUG  : ", 0
+str_saving_dbg       .byte "SAVING  : ", 0
 str_ext_dbg          .byte ".DBG", 0
 str_ext_dbi          .byte ".DBI", 0
 str_ext_txt          .byte ".TXT", 0
@@ -2576,12 +2576,16 @@ str_decompiler    .byte "CX-DC", 0
 ;;	Load the meta_i viewer into an $A000 bank, execute it.
 ;;	
 meta_i_insp
+	.ifdef DEV
 	LoadW         r1,str_meta_i_insp
 	jsr           load_and_run_plugin
 	clc
+	.endif
 	rts
 	
+	.ifdef DEV
 str_meta_i_insp  .byte "CX-MII", 0
+	.endif
 
 
 ;;	

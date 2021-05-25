@@ -11,6 +11,7 @@
 	.export encode_parse_expression, encode_get_entry, encode_string
 
 	.include "decoder.inc"
+	.include "decoder_vars.inc"
 	.include "encode_vars.inc"
 	.include "meta.inc"
 	.include "meta_i.inc"
@@ -536,7 +537,7 @@ encode_string
 encode_byte_string
 	;; extract a series of bytes and push into the byte buffer
 	stz      encode_buffer_size
-	LoadW    M1,encode_buffer
+	LoadW    M1,code_buffer
 	PushW    r1
 
 @encode_string_byte_loop
@@ -596,7 +597,7 @@ encode_byte_string
 encode_word_string
 	;; extract a series of words and push into the byte buffer
 	stz      encode_buffer_size
-	LoadW    M1,encode_buffer
+	LoadW    M1,code_buffer
 	PushW    r1
 
 @encode_string_word_loop
@@ -706,7 +707,7 @@ encode_pstr_string
 
 @encode_pstr_exit
 	tya                                     ; Terminate the C string
-	sta         encode_buffer
+	sta         code_buffer
 	iny
 	sty         encode_buffer_size
 	
@@ -743,7 +744,7 @@ encode_string_parse
 	cmp         #DBL_QUOTE
 	bne         @encode_string_error
 
-	LoadW       r2,encode_buffer
+	LoadW       r2,code_buffer
 	
 	lda         encode_buffer_size
 	sta         TMP1L
@@ -862,7 +863,7 @@ encode_parse_emitter_table
 	lda      #1
 	sta      encode_buffer_size
 	lda      r2H
-	sta      encode_buffer
+	sta      code_buffer
 	      
 	clc
 	rts
@@ -875,9 +876,9 @@ encode_parse_emitter_table
 	lda      #2
 	sta      encode_buffer_size
 	lda      r2H
-	sta      encode_buffer
+	sta      code_buffer
 	lda      r1L
-	sta      encode_buffer+1
+	sta      code_buffer+1
 	      
 	clc
 	rts
@@ -891,13 +892,13 @@ encode_parse_emitter_table
 	sta      encode_buffer_size
 
 	lda      r2H
-	sta      encode_buffer
+	sta      code_buffer
 	      
 	lda      r1L
-	sta      encode_buffer+1
+	sta      code_buffer+1
 	      
 	lda      r1H
-	sta      encode_buffer+2
+	sta      code_buffer+2
 	      
 	clc
 	rts
@@ -911,7 +912,7 @@ encode_parse_emitter_table
 	sta      encode_buffer_size
 
 	lda      r2H
-	sta      encode_buffer
+	sta      code_buffer
 	      
 	inc      encode_pc
 	inc      encode_pc
@@ -923,7 +924,7 @@ encode_parse_emitter_table
 
 	lda      r1L
 	sbc      encode_pc
-	sta      encode_buffer+1
+	sta      code_buffer+1
 	      
 	clc
 	rts
@@ -1196,10 +1197,10 @@ encode_zp_bit_bytes
 	asl
 	asl
 	ora   r2H
-	sta   encode_buffer
+	sta   code_buffer
 	
 	lda   r1L
-	sta   encode_buffer+1
+	sta   code_buffer+1
 
 	lda   r2L
 	cmp   #MODE_ZP_BIT
@@ -1232,7 +1233,7 @@ encode_zp_bit_bytes
 
 	lda      TMP2L
 	sbc      TMP1L
-	sta      encode_buffer+2
+	sta      code_buffer+2
 
 	clc
 	rts

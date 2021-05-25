@@ -21,7 +21,7 @@
 	.include "x16_kernal.inc"
 	.include "cx_vars.inc"
 
-	.export clear, init_screen_variables, screen_set_fg_color, print_string, read_key_with_prompt, read_string_with_prompt
+	.export clear, init_screen_variables, screen_set_fg_color, read_key_with_prompt, read_string_with_prompt
 	.export read_string, read_string_preloaded, draw_box, draw_box_center_lines, erase_box
 	.export draw_horizontal_line, draw_vertical_line, save_vera_state, restore_vera_state, save_user_screen, restore_user_screen
 	.export screen_clear_scrollback, screen_get_prev_scrollback_address, screen_add_scrollback_address
@@ -199,22 +199,6 @@ screen_set_fg_color
 	rts
 	
 ;;
-;; Print string pointed by r1
-;;
-print_string
-	ldy #0
-print_loop
-	lda     (r1),y
-	beq     print_exit
-	jsr     petscii_to_scr
-	charOutA
-	iny
-	bra     print_loop
-
-print_exit
-	rts
-
-;;
 ;; Read key with prompt
 ;;
 read_key_with_prompt
@@ -231,7 +215,7 @@ read_key_with_prompt
 	stx     SCR_COL
 	vgoto
 
-	jsr     print_string
+	jsr     prtstr
 	             
 @read_key_with_prompt_loop
 	kerjsr  GETIN
@@ -275,7 +259,7 @@ read_string_with_prompt
 	stx     SCR_COL
 	vgoto
 
-	jsr     print_string               ; Print prompt string
+	jsr     prtstr               ; Print prompt string
 	
 	;; read_string_core needs this later
 	lda     SCR_COL
@@ -318,7 +302,7 @@ read_string_preloaded
 	PushW   r2
 	LoadW   r2,input_string
 	jsr     util_strcpy
-	jsr     print_string
+	jsr     prtstr
 	PopW    r2
 	bra     read_string_core
 	
@@ -1313,7 +1297,7 @@ rdhex2
 rdhex2_read_the_string_for_preload
 	;; Format the preload value for input
 	stz     decoded_str_next
-	LoadW   r10,decoded_str
+	LoadW   r10,code_buffer
 	lda     r2H
 	jsr     decode_push_hex
 	lda     r2L

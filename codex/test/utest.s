@@ -690,7 +690,7 @@ testTableDecoder
 	
 	jsr    decode_push_label_or_hex_core
 	;; Terminate the decoded_string
-	LoadW  r1,decoded_str
+	LoadW  r1,code_buffer
 	lda    #0
 	ldy    decoded_str_next
 	sta    (r1),y
@@ -716,7 +716,7 @@ testTableDecoder
 	jsr         decode_push_hex
 	lda         #<decoder_test_code
 	jsr         decode_push_hex
-	LoadW        TMP1,decoded_str
+	LoadW        TMP1,code_buffer
 	LoadW        TMP2,str_test_arg16+7
 	ldy         #3
 @decode_arg_16_loop
@@ -1559,7 +1559,7 @@ testEncoderBufferAssert
 	;; Buffer test [0]
 	;;
 	lda      r2L
-	cmp      encode_buffer
+	cmp      code_buffer
 	bne      :+
 	dex
 	bne      @testEncoderBufferTest2
@@ -1573,7 +1573,7 @@ testEncoderBufferAssert
 	;; Buffer test [1]
 	;;
 	lda      r2H
-	cmp      encode_buffer+1
+	cmp      code_buffer+1
 	bne      :+
 	dex
 	bne      @testEncoderBufferTest3
@@ -1587,7 +1587,7 @@ testEncoderBufferAssert
 	;; Buffer test [3]
 	;;
 	lda      r3L
-	cmp      encode_buffer+2
+	cmp      code_buffer+2
 	beq      @testEncoderBufferPass
 	fail     str_buffer_2
 	bra      @testEncoderBufferName
@@ -1676,7 +1676,7 @@ testEncoder2
 	
 	lda            encode_buffer_size
 	assertEqA      6,str_encode2_byte_count
-	LoadW          T1,encode_buffer
+	LoadW          T1,code_buffer
 	lda            (T1)
 	assertEqA      $34,str_encode2_buffer_wal
 	
@@ -1707,7 +1707,7 @@ testEncoder2
 	assertCarryClear str_encode2_encoded
 	lda             encode_buffer_size
 	assertEqA       4,str_encode2_byte_count
-	LoadW           T1,encode_buffer
+	LoadW           T1,code_buffer
 	
 	lda               (T1)
 	assertEqA         'F',str_encode2_buffer_cstr
@@ -1731,7 +1731,7 @@ testEncoder2
 	assertCarryClear  str_encode2_encoded
 	lda             encode_buffer_size
 	assertEqA       4,str_encode2_byte_count
-	LoadW           T1,encode_buffer
+	LoadW           T1,code_buffer
 	
 	lda               (T1)
 	assertEqA         3,str_encode2_buflen_pstr
@@ -1772,7 +1772,7 @@ str_encode2_delete_expr .byte "DELETE PSEUDO EXPR", CR, 0
 ;; Clear encode buffer
 ;;
 clear_encode_buffer
-	LoadW          r1,encode_buffer
+	LoadW          r1,code_buffer
 	ldy            #(ENCODE_BUFFER_MAX-1)
 	lda            #0
 @clear_encode_buffer_loop

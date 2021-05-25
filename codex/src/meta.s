@@ -209,13 +209,12 @@ meta_get_label
 	ora         r1L
 	beq         @meta_get_label_exit
 
-;	             callR1R2    util_strcpy,label,decoded_str	
 	PushW       r2
-	LoadW       r2,decoded_str
+	LoadW       r2,code_buffer
 	jsr         util_strcpy
 	PopW        r2
 	
-	LoadW       r1,decoded_str
+	LoadW       r1,code_buffer
 	
 @meta_get_label_exit
 	popBank

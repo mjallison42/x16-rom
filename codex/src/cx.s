@@ -80,7 +80,7 @@
 ;;      R7
 ;;      R8
 ;;      R9
-;;      R10 - decoded_str
+;;      R10 - code_buffer
 	
 ;;      R11 - scratch, not saved
 ;;      R12 - scratch, not saved
@@ -888,10 +888,10 @@ asm_edit_inst
 	
 	jsr        decode_append_next_argument
 	jsr        decode_terminate
-	LoadW      r1,decoded_str
+	LoadW      r1,code_buffer
 	jsr        util_trim_string
 
-	callR1R2   read_string_with_prompt,str_empty,decoded_str
+	callR1R2   read_string_with_prompt,str_empty,code_buffer
 	bcc        @asm_edit_inst_accept
 	pla
 	jmp        @asm_edit_inst_exit
@@ -904,7 +904,7 @@ asm_edit_inst
 	LoadW      r1,input_string
 	jsr        util_trim_string
 
-	LoadW      r2,decoded_str
+	LoadW      r2,code_buffer
 	jsr        util_strcpy ; stash the newly editing string for the second pass
 	jsr        encode_string
 	bcc        @asm_edit_no_error1
@@ -946,7 +946,7 @@ asm_edit_inst
 	;; There are exactly the needed bytes at the edit point, just replace the bytes from the encode pass
 	;; Do same as insert_inst now
 	stz        encode_dry_run ; Turns encode into full encode pass
-	LoadW      r1,decoded_str
+	LoadW      r1,code_buffer
 	jsr        encode_string
 
 	jsr        asm_apply_encoding
@@ -969,8 +969,9 @@ asm_edit_inst_error
 ;;
 asm_apply_encoding
 	;; Copy contents of encode buffer into destination location
-	LoadW      r1,encode_buffer
+	LoadW      r1,code_buffer
 	MoveW      assy_selected_instruction,r2
+
 	ldy        encode_buffer_size
 	dey
 @asm_apply_encoding_loop
@@ -1234,8 +1235,10 @@ assy_run
 	beq        @assy_run_exit
 	
 @assy_run_ok
+	; Build a shim, use the encode buffer
+	
 	jmp        (r2)
-	rts                    ; not likely to return from here. Target returns to dispatch
+	rts
 
 @assy_run_abort
 	LoadW      ERR_MSG,str_bad_address
@@ -1607,7 +1610,6 @@ assy_display_watch_loop
 	sta      K_TEXT_COLOR
 
 assy_display_watches_valid
-
 	tya
 	dec
 	dec
@@ -1796,7 +1798,7 @@ assy_display_zp_registers
 	stz      decoded_str_next
 	jsr      decode_push_hex_word
 	jsr      decode_terminate
-	callR1   prtstr,decoded_str
+	callR1   prtstr,code_buffer
 	
 :  
 	popBank
@@ -1866,7 +1868,7 @@ assy_display_stack
 	jsr      decode_push_hex
 
 @assy_display_stack_skip
-	LoadW    r1,decoded_str
+	LoadW    r1,code_buffer
 	jsr      decode_terminate
 	jsr      prtstr
 
@@ -2005,7 +2007,7 @@ assy_prt_inst_check
 	jsr     decode_terminate
 	lda     #COLOR_CDR_INST
 	jsr     screen_set_fg_color
-	callR1  prtstr,decoded_str
+	callR1  prtstr,code_buffer
 
 	ldx     #COL_ARGUMENTS
 	jsr     prtspaceto
@@ -2014,7 +2016,7 @@ assy_prt_inst_check
 	jsr     screen_set_fg_color
 	stz     decoded_str_next
 	jsr     decode_next_argument
-	callR1  prtstr_shim,decoded_str
+	callR1  prtstr_shim,code_buffer
 
 	MoveW   r2,r1
 	jsr     decode_get_byte_count
@@ -2601,7 +2603,7 @@ load_and_run_plugin
 
 	callR1        file_load_bank_a000,0
 	switchBankVar bank_assy
-	callR1R2      util_strcpy,orig_file_name,decoded_str
+	callR1R2      util_strcpy,orig_file_name,code_buffer
 	switchBankVar bank_plugin
 	jsr           $a000
 	popBank

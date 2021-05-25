@@ -42,7 +42,7 @@
 ;; Decoder tries to keep r10 pointing to the decoded_str
 
 ;;
-;; Raw instruction menmonics
+;; Raw instruction menmonics, created by an offline "compressor". Each entry point goes to a 3 character mnemonic.
 ;;
 mnemonics
 	
@@ -493,9 +493,9 @@ decode_next_instruction
 	phy
 
 	;; don't use +ld16 here, it clobber A!
-	ldx     #<decoded_str
+	ldx     #<code_buffer
 	stx     r10L
-	ldx     #>decoded_str
+	ldx     #>code_buffer
 	stx     r10H
 	     
 	;; Check for data statements first
@@ -654,9 +654,9 @@ decode_get_byte_count
 ;;
 decode_next_argument
 	stz     decoded_str_next
-	stz     decoded_str
+	stz     code_buffer
 
-;; An entry point that does not zero out decoded_str
+;; An entry point that does not zero out code_buffer
 decode_append_next_argument
 ;        PushW   r2
 ;        MoveW   r2,r1
@@ -669,10 +669,10 @@ decode_append_next_argument
 	pha     
 ;
 
-	ldx     #<decoded_str
+	ldx     #<code_buffer
 	stx     r10L
 	stx     r0L
-	ldx     #>decoded_str
+	ldx     #>code_buffer
 	stx     r10H
 	stx     r0H
 
@@ -687,7 +687,7 @@ decode_append_next_argument
 	beq     @decode_next_arg_instruction
 	jsr     decode_next_pseudo_arg
 	PopW    r2
-	LoadW   r1,decoded_str
+	LoadW   r1,code_buffer
 	rts
 
 @decode_next_arg_instruction
@@ -1035,7 +1035,7 @@ decode_pseudo_arg_dispatch
 ;; Pseudo decoders
 ;; Input
 ;;       r2  - instruction ptr
-;;       r10 - decoded_str
+;;       r10 - code_buffer
 ;;       M1  - Expression ptr
 ;;
 decode_pseudo_none
@@ -1253,7 +1253,7 @@ decode_push_char
 	rts
 
 ;;
-;; Push terminate decoded_str
+;; Push terminate code_buffer
 ;; Clobbers Y, A
 ;;
 decode_terminate

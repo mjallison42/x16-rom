@@ -94,6 +94,17 @@
 ;;      x19
 ;;      x20
 	
+	;; Banked RAM use
+	;;
+	;; Name		2-MB		512-KB	Comment
+	;; MAX		$ff		$3f		Page not used
+	;; Assy		$fe		$3e		Generalized Codex data store, program region, etal.
+	;; Scr1		$fd		$3d		First part of saved screen
+	;; Scr2		$fc		$3c		Second part of saved screen
+	;; Meta_L	$fb		$3b		Label meta data
+	;; Meta_I	$fa		$3a		Instruction meta data
+	;; Plugin   $f9		$39		Plugin executable space (e.g. cx-dc)
+	
 	.code
 	
 	.include "bank.inc"
@@ -1235,9 +1246,22 @@ assy_run
 	beq        @assy_run_exit
 	
 @assy_run_ok
-	; Build a shim, use the encode buffer
+ 	; Build a shim, use the encode buffer
 	
-	jmp        (r2)
+;	jmp        (r2)
+	; build the code shim to transfer control to user program
+	LoadW      r0,code_buffer
+	ldy        #0
+	lda        #$6c
+	sta        (r0),y
+	iny
+	lda        #<r2
+	sta        (r0),y
+	iny
+	lda        #>r2
+	sta        (r0),y
+	
+	kerjsr     code_buffer
 	rts
 
 @assy_run_abort

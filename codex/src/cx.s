@@ -276,11 +276,6 @@ main_display_core
 	ldy    #12
 	callR1 prtstr_at_xy,version_string
 
-	.ifdef DEV
-	vgotoXY  4,12
-	jsr     print_logo
-	.endif
-	
 	bra     @main_display_exit
 
 :  
@@ -2147,67 +2142,6 @@ print_header
 	sta     K_TEXT_COLOR
 	jsr     print_horizontal_line
 	rts
-
-	.ifdef DEV
-;;
-;; Print logo at current X-Y
-;; Current logo is 7w x 7h
-;;
-print_logo
-	lda     SCR_COL
-	pha
-
-	LoadW   r1,logo2_buffer
-
-	ldy     #7
-print_logo_row_loop
-	pla
-	pha
-	sta     SCR_COL
-
-	phx
-	phy
-	vgoto
-	ply
-	plx
-
-	ldx     #7
-	lda     (r1)            ; get color
-	jsr     screen_set_fg_color
-	IncW    R1
-
-print_logo_col_loop
-	lda     (r1) 
-	charOutA
-	IncW    r1
-
-	dex
-	bne     print_logo_col_loop
-
-	inc     SCR_ROW
-	dey
-	bne     print_logo_row_loop
-
-	pla
-	rts
-
-;;; -------------------------------------------------------------------------------------
-;; Strings and display things
-
-	;; Logo buffer, first byte of each line is color
-	;; each succeeding byte is the shape character. 
-	;; draw routine needs to maintain the color for the entire line.
-
-logo2_buffer
-	.byte $64, $df,$20,$20,$20,$20,$20,$e9
-	.byte $6e, $f4,$df,$20,$20,$20,$e9,$e7
-	.byte $63, $f5,$a0,$df,$20,$e9,$a0,$f6
-	.byte $65, $20,$77,$fb,$20,$ec,$77,$20
-	.byte $67, $20,$6f,$fe,$20,$fc,$6f,$20
-	.byte $68, $67,$a0,$69,$20,$5f,$a0,$74
-	.byte $62, $76,$69,$20,$20,$20,$5f,$75
-
-	.endif
 	
 fn_header            .byte " F1   F2   F3   F4   F5    F6    F7   F8         RAM BANK = ", 0
 main_header          .byte " FILE VIEW ASM  RUN              WATC EXIT", 0
@@ -2225,12 +2159,7 @@ str_main_label       .byte "MAIN", 0
 str_add_label_prompt .byte "NEW LABEL: ", 0
 str_define_prompt    .byte "DEFINE: ", 0	
 
-version_string       .byte "CODEX V0.91", CR
-	.ifdef DEV
-rls_091_0            .byte "                 ", SCR_BULLET, " BUGS FIXED", CR
-	.else
-	                  .byte 0
-	.endif
+version_string       .byte "CODEX V0.91", 0
 
 str_press_2_continue .byte "PRESS KEY TO CONTINUE...", 0
 str_loading_pgm      .byte "LOADING PROGRAM: ", 0
@@ -2264,22 +2193,6 @@ str_65c02_required   .byte "ERROR: 65C02 REQUIRED!", CR, 0
 ;;; -------------------------------------------------------------------------------------
 	.code
 	
-
-;;
-;; Reset the VERA so the blinking cursor doesn't leave a trail on the screen!
-;;
-reset_vera_for_exit
-	lda     #$00                    ; turn off increment
-	sta     VERA_ADDR_HI
-
-	lda     VERA_ADDR_MID
-	clc
-	adc     #1                      ; Go to next row
-	sta     VERA_ADDR_MID
-	
-	stz     VERA_ADDR_LO            ; Start on column 0
-
-	rts
 
 ;;
 ;; New program
@@ -2601,16 +2514,16 @@ str_decompiler    .byte "CX-DC", 0
 ;;	
 ;;	Load the meta_i viewer into an $A000 bank, execute it.
 ;;	
-meta_i_insp
 	.ifdef DEV
+meta_i_insp
 	LoadW         r1,str_meta_i_insp
 	jsr           load_and_run_plugin
 	clc
-	.endif
 	rts
 	
-	.ifdef DEV
 str_meta_i_insp  .byte "CX-MII", 0
+	.else
+	meta_i_insp = 0
 	.endif
 
 
@@ -2714,12 +2627,13 @@ handle_break
 	jsr       break_loop
 
 	jsr       restore_user_screen
-	jsr       restore_vera_state
 
 	;; Restore stack for an eventual RTI
 	lda       bank_assy
 	sta       BANK_CTRL_RAM 
 
+	jsr       restore_vera_state
+	
 	lda       brk_data_fa
 	kerjsr    CHKIN
 

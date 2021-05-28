@@ -330,10 +330,7 @@ read_string
 	sta     r11H
 	
 read_string_core	
-	lda     #<input_string
-	sta     r1L
-	lda     #>input_string
-	sta     r1H
+	LoadW   r1,input_string
 
 	;; r12 original color
 	;; r13 flash colors
@@ -719,40 +716,24 @@ draw_vertical_line
 
 ;;
 ;; Save VERA state (to bank_assy)
-;; Does not save the data registers
+;; Does not save the data registers, MUST be called with bank_assy seleced
 ;;
 save_vera_state
-	pushBankVar bank_assy
-;         lda          VERA_ADDR_LO
-;         sta          vera_save_addr_lo
-;         lda          VERA_ADDR_MID
-;         sta          vera_save_addr_mid
-;         lda          VERA_ADDR_HI
-;         sta          vera_save_addr_hi
-;         lda          VERA_CTRL
-;         sta          vera_save_ctrl
-;         lda          VERA_IEN
-;         sta          vera_save_ien
-;         lda          VERA_ISR
-;         sta          vera_save_isr
+	pushBankVar  bank_assy
 	sec                           ; Interrogate XY
 	kerjsr       PLOT
 	stx          screen_save_plot_x
 	sty          screen_save_plot_y
 
-	;; Fix for later rom versions (post 33)
 	clc                           ; interrogate mode
 	kerjsr       SCRMOD
 	sta          screen_save_mode
-	cmp          #MODE_80_60
-	beq          :+
 
 	;; set to 80 col mode for debugger
 	lda          #MODE_80_60
 	sec
 	kerjsr       SCRMOD
 	      
-:  
 	popBank
 	rts
 
@@ -761,43 +742,19 @@ save_vera_state
 ;; Does not restore the data registers
 ;;
 restore_vera_state
-	pushBankVar bank_assy
-;         clc                           ; Set screen mode
-;         lda          screen_save_mode
-;         kerjsr       SCRMOD
-	      
-	;; Fix for later ROM versions (post 33)
 	lda          screen_save_mode
-	cmp          #80
-	beq          :+
 
 	;; restore to 40 col mode
 	kerjsr       SCRMOD
 	      
-:  
 	ldx          screen_save_plot_x
 	ldy          screen_save_plot_y
 	clc                           ; Set XY
 	kerjsr       PLOT
-;         lda          vera_save_addr_lo
-;         sta          VERA_ADDR_LO
-;         lda          vera_save_addr_mid
-;         sta          VERA_ADDR_MID
-;         lda          vera_save_addr_hi
-;         sta          VERA_ADDR_HI
-;         lda          vera_save_ctrl
-;         sta          VERA_CTRL
-;         lda          vera_save_ien
-;         sta          VERA_IEN
-;         lda          vera_save_isr
-;         sta          VERA_ISR
-	       
-	popBank
 	rts
 
 ;;
 ;; Save the user screen
-;; Todo, save VERA mode
 ;;
 
 	LAST_COL=80*2
@@ -940,19 +897,22 @@ restore_user_screen
 ;;
 ;; ------------------------------------------------------------
 ;; Scrollback module, so an scroll backwards
-;; Implemented as a stack of 16 bit values, r9 always pointing to top of stack
+;; Implemented as a stack of 16 bit values, scrollback_ptr always pointing to top of stack
 ;; ------------------------------------------------------------
 
 scrollback_top_ptr      = $A000 +ROW_BANK_SWITCH * LAST_COL
-scrollback_start_ptr    = $c000 ; also means an empty stack, will not write here
-scrollback_low_water    = $c000
+scrollback_ptr          = $c000 - 2
+scrollback_start_ptr    = scrollback_ptr ; also means an empty stack, will not write here
+scrollback_low_water    = scrollback_ptr 
 SCROLLBACK_COUNT        = (scrollback_low_water - scrollback_top_ptr) / 2
 
 ;;
 ;; Initialize the scrollback structure
 ;;
 screen_clear_scrollback
-	LoadW           r9,scrollback_start_ptr
+	pushBankVar     bank_scr1
+	LoadW           scrollback_ptr,scrollback_start_ptr
+	popBank
 	rts
 
 ;;
@@ -963,23 +923,44 @@ screen_clear_scrollback
 screen_get_prev_scrollback_address
 	pushBankVar    bank_scr1
 
-	LoadW          TMP1,scrollback_low_water
-	ifGE           r9,TMP1,screen_get_addr_fail
+	MoveW          scrollback_ptr,TMP2
 	
+; Manually expanded ifGE macro, to handle immediate argument	
+;	ifGE           TMP2,#scrollback_low_water,screen_fail
+	
+	lda				TMP2H
+	cmp				#>scrollback_low_water
+	bcc				:+
+	bne				screen_fail
+	lda				TMP2L
+	cmp				#<scrollback_low_water
+	bcs				screen_fail
+
+:	
 	ldy            #0
-	lda            (r9),y
+	lda            (TMP2),y
 	sta            r0L
 	iny
-	lda            (r9),y
+	lda            (TMP2),y
 	sta            r0H
-	AddVW          2,r9
 	
-@screen_get_addr_exit
+
+;	AddVW          2,TMP2
+;  MoveW          TMP2,scrollback_ptr
+	
+	lda				TMP2
+	clc
+	adc				#2
+	sta				scrollback_ptr
+	bcc				screen_exit
+	inc				scrollback_ptr+1
+	
+screen_exit       ; Common exit for routines
 	popBank
 	clc
 	rts
 	
-screen_get_addr_fail
+screen_fail       ; Common exit routines
 	popBank
 	sec
 	rts
@@ -992,29 +973,38 @@ screen_get_addr_fail
 screen_add_scrollback_address
 	pushBankVar   bank_scr1
 	            
-	LoadW          TMP1,scrollback_top_ptr
-	ifGE           TMP1,r9,@screen_add_roll
+	MoveW          scrollback_ptr,TMP2
+	
+	; Manually expanded ifGE, with #immediate argument
+   ; ifGE           #scrollback_top_ptr,TMP2,@screen_add_roll
+	
+	lda 				#>scrollback_top_ptr    ; compare high bytes
+	cmp 				TMP2H
+	bcc 				:+                      ; if NUM1H < NUM2H then NUM1 < NUM2
+	bne 			 	@screen_add_roll        ; if NUM1H <> NUM2H then NUM1 > NUM2 (so NUM1 >= NUM2)
+	lda 				#<scrollback_top_ptr    ; compare low bytes
+	cmp 				TMP2L
+	bcc 				@screen_add_roll        ; if NUM1L < NUM2L then NUM1 < NUM2
 
+:
 	sec
-	lda            r9L
+	lda            TMP2L
 	sbc            #2
-	sta            r9L
+	sta            TMP2L
+   sta				scrollback_ptr
 	bcs            @screen_store_address
-	dec            r9H
+	dec            TMP2H
+   dec				scrollback_ptr+1
 
 @screen_store_address
 	ldy            #0
 	lda            r1L
-	sta            (r9),y
+	sta            (TMP2),y
 	iny
 	lda            r1H
-	sta            (r9),y
+	sta            (TMP2),y
+   bra            screen_exit
 	            
-@screen_add_exit
-	popBank
-	clc
-	rts
-
 @screen_add_roll
 	;; push entire stack down by one entry, cutting off the oldest
 	PushW          r0

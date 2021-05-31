@@ -158,6 +158,9 @@ util_parse_hex
 
 	ldy      #0
 
+	lda     (r1)
+	beq     @util_parse_hex_error_exit
+	
 @util_parse_loop
 	lda     (r1),y
 	beq     @util_parse_hex_exit

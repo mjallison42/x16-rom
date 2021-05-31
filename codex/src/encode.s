@@ -1297,6 +1297,7 @@ encode_parse_expression
 @parse_expr_hex
 	IncW   r1
 	jsr   util_parse_hex
+	bcs   @parse_expr_error
 
 @parse_expr_save_meta
 	ldx   r13L

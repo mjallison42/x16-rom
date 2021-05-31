@@ -2088,7 +2088,7 @@ assy_prt_check_continue
 ;;
 read_address_with_prompt
 	callR1     rdhex2,str_addr_prompt
-	bne        @read_addr_ok
+	bcc        @read_addr_ok
 
 	LoadW      ERR_MSG,str_bad_address
 	sec
@@ -2211,7 +2211,6 @@ file_new
 	jsr     clear_program_settings
 	LoadW   r2,$ffff
 	jsr     read_address_with_prompt
-
 	bcs     @file_new_exit
 	
 	lda     r0L

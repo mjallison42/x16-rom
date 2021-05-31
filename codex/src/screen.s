@@ -1319,6 +1319,7 @@ rdhex2_read_the_string
 	             
 	ldy     #0
 	lda     (r1),y
+	beq     rdhex_error_exit
 	             
 rdhex_convert
 	cmp     #':'

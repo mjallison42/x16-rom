@@ -148,13 +148,20 @@
 	SCR_QUOTE=39
 
 ;;
-;; Clear the screen, reset SCR_PTR
+;; Clear the screen
 ;;
 clear 
-	lda    #CLS
-	kerjsr CHROUT
 	stz    SCR_ROW
+cl_loop
 	stz    SCR_COL
+	vgoto
+	ldx    #80
+	jsr    prtspaceto
+	inc    SCR_ROW
+	lda    SCR_ROW
+	cmp    #60
+	bne    cl_loop
+:	
 	rts
 
 ;;

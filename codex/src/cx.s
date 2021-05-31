@@ -251,7 +251,7 @@ main_run_prgrm
 	bcs     :+
 	jsr     save_user_screen
 	kerjsr  CLALL
-	callR1  wait_for_keypress,str_press_2_continue
+	callR1  wait_for_keypress,0
 
 	clc
 	kerjsr  SCRMOD
@@ -260,6 +260,7 @@ main_run_prgrm
 	lda     #MODE_80_60
 	sec
 	kerjsr  SCRMOD   ; back to 80 col
+	jsr        clear
 
 :  
 	clc
@@ -1323,6 +1324,11 @@ assy_watch_addr_ok
 	ply
 	PopW    r2
 
+	lda     input_hex_bank     ; Check for bad watch
+	ora     r0L
+	ora     r0H
+	beq     assy_watch_exit
+	
 	;; R1+y pointing at address of watch entry
 	lda     r5L                ; Save type
 	sta     (r2),y
@@ -2161,7 +2167,6 @@ str_define_prompt    .byte "DEFINE: ", 0
 
 version_string       .byte "CODEX V0.91", 0
 
-str_press_2_continue .byte "PRESS KEY TO CONTINUE...", 0
 str_loading_pgm      .byte "LOADING PROGRAM: ", 0
 str_loading_dbg      .byte "LOADING .DBG", 0
 str_loading_dbi      .byte ", .DBI", 0

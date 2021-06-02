@@ -392,105 +392,105 @@ view_user_screen
 ;; View symbols in memory
 ;;
 view_symbols
-	jsr      clear_content
-
-	lda      #DATA_ROW
-	asl
-	sta      r13L
-	LoadW    r2,label_data_start
-
-	pushBankVar   bank_meta_l
-	
-:
-	lda     r13L
-	
-	cmp     #(LAST_ROW*2)
-	beq     view_symbols_exit
-	
-	lsr
-	sta     SCR_ROW
-	
-	bcc     @view_col_0
- 
-@view_col_1
-	lda     #(HDR_COL + 25)
-	bra     @view_symbol_continue
-
-@view_col_0
-	lda     #HDR_COL
-
-@view_symbol_continue
-	sta     SCR_COL
-	jsr     vera_goto
-	
-	jsr     view_symbol_prt_line
-	bcs     view_symbols_exit
-	
-	inc     r13L
-
-	bra     :-
-
-view_symbols_exit
-	callR1 wait_for_keypress,0
-	popBank
-
+;	jsr      clear_content
+;
+;	lda      #DATA_ROW
+;	asl
+;	sta      r13L
+;	LoadW    r2,label_data_start
+;
+;	pushBankVar   bank_meta_l
+;	
+;:
+;	lda     r13L
+;	
+;	cmp     #(LAST_ROW*2)
+;	beq     view_symbols_exit
+;	
+;	lsr
+;	sta     SCR_ROW
+;	
+;	bcc     @view_col_0
+; 
+;@view_col_1
+;	lda     #(HDR_COL + 25)
+;	bra     @view_symbol_continue
+;
+;@view_col_0
+;	lda     #HDR_COL
+;
+;@view_symbol_continue
+;	sta     SCR_COL
+;	jsr     vera_goto
+;	
+;	jsr     view_symbol_prt_line
+;	bcs     view_symbols_exit
+;	
+;	inc     r13L
+;
+;	bra     :-
+;
+;view_symbols_exit
+;	callR1 wait_for_keypress,0
+;	popBank
+;
 	rts
 
 ;;
 ;; Print the next symbol to the screen
 ;;
-view_symbol_prt_line
-	;; Grab string pointer
-	ldy     #3
-	lda     (r2),y
-	sta     M1H
-	dey
-	lda     (r2),y
-	dey
-	sta     M1L
-	ora     M1H
-	beq     view_symbol_prt_line_done
+;view_symbol_prt_line
+;	;; Grab string pointer
+;	ldy     #3
+;	lda     (r2),y
+;	sta     M1H
+;	dey
+;	lda     (r2),y
+;	dey
+;	sta     M1L
+;	ora     M1H
+;	beq     view_symbol_prt_line_done
+;
+;	lda     #'$'
+;	jsr     vera_out_a
+;
+;	;; grab value
+;	lda     (r2),y
+;	dey
+;	tax
+;	jsr     prthex
+;
+;	lda     (r2),y
+;	tax
+;	jsr     prthex
+;	
+;	;; spacer
+;	lda     #' '
+;	jsr     vera_out_a
+;	lda     #' '
+;	jsr     vera_out_a
+;
+;	;; print string symbol
+;	lda     M1H
+;	sta     r1H
+;	lda     M1L
+;	sta     r1L
+;	jsr     prtstr
+;
+;	;; point to next
+;	lda     #4
+;	clc
+;	adc     r2L
+;	sta     r2L
+;	bcc     :+
+;	inc     r2H
+;:  
+;	clc
+;	rts
 
-	lda     #'$'
-	jsr     vera_out_a
-
-	;; grab value
-	lda     (r2),y
-	dey
-	tax
-	jsr     prthex
-
-	lda     (r2),y
-	tax
-	jsr     prthex
-	
-	;; spacer
-	lda     #' '
-	jsr     vera_out_a
-	lda     #' '
-	jsr     vera_out_a
-
-	;; print string symbol
-	lda     M1H
-	sta     r1H
-	lda     M1L
-	sta     r1L
-	jsr     prtstr
-
-	;; point to next
-	lda     #4
-	clc
-	adc     r2L
-	sta     r2L
-	bcc     :+
-	inc     r2H
-:  
-	clc
-	rts
-
-view_symbol_prt_line_done
-	sec
-	rts
+;view_symbol_prt_line_done
+;	sec
+;	rts
 
 ;;
 ;; Asm sub menu

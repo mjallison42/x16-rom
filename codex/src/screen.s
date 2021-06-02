@@ -161,7 +161,7 @@ cl_loop
 	lda    SCR_ROW
 	cmp    #60
 	bne    cl_loop
-:	
+	
 	rts
 
 ;;
@@ -758,8 +758,9 @@ restore_vera_state
 	ldy          screen_save_plot_y
 	clc                           ; Set XY
 	kerjsr       PLOT
+	
 	rts
-
+ 
 ;;
 ;; Save the user screen
 ;;
@@ -767,139 +768,128 @@ restore_vera_state
 	LAST_COL=80*2
 	LAST_ROW=60
 	ROW_BANK_SWITCH=LAST_ROW/2
+	save_screen=$a000
 
 save_user_screen
 	pushBankVar bank_assy
 
-	clc
-	kerjsr    SCRMOD
+	lda       cscrmd ; kvar
 	sta       screen_save_mode
 
 	clc
 	kerjsr    PLOT
 	stx       screen_save_plot_x
 	sty       screen_save_plot_y
-
-	lda       bank_scr1
-	sta       BANK_CTRL_RAM
-
-	lda       #<save_screen
-	sta       r1L
-	lda       #>save_screen
-	sta       r1H
-
-	vgotoXY 0,0
-
-@save_row_loop
-	ldy      #0
-
-@save_line_loop
-	lda     VERA_DATA0
-	sta     (r1),y
-	iny
-	tya
-	cmp     #LAST_COL
-	bne     @save_line_loop
-
-	lda     r1L
-	clc
-	adc     #LAST_COL
-	sta     r1L
-	bcc     :+
-	inc     r1H
-
-:  
-	stz     SCR_COL
-	inc     SCR_ROW
-	vgoto
-
-	lda     SCR_ROW
-
-	;; If halfway down the screen, switch banks
-	cmp     #ROW_BANK_SWITCH
-	bne     :+
-	lda     bank_scr2
-	sta     BANK_CTRL_RAM
 	
-	lda       #<save_screen
-	sta       r1L
-	lda       #>save_screen
-	sta       r1H
-	bra       @save_row_loop
+	LoadW     r0,0
+	LoadW     r1,0
+	kerjsr    FB_CURSOR_POSITION
 
-:
-	cmp     #LAST_ROW
-	bne     @save_row_loop
+	LoadW     r1,320
+	LoadW     r2,200
+	LoadW     r3,save_mover
 
+	jsr       save_restore_user_screen_iter
+	
 	popBank
 	rts
+	
+	;;
+	;; Iterate over all rows, calling the row mover
+	;;
+save_restore_user_screen_iter
+	switchBankVar bank_scr1
 
-	save_screen=$a000
+	LoadW     r0,save_screen
+	LoadW     r4,0 ; Row counter
+	
+@save_restore_iter_loop	
+	jsr       save_restore_user_screen_row
+	LoadW     TMP1,$c000
+	SubW      r0,TMP1
+	ifGE      TMP1,r1,@save_restore_iter_incr
+	LoadW     r0,save_screen
+	dec       BANK_CTRL_RAM
+@save_restore_iter_incr
+	IncW      r4
+	ifNe16    r4,r2,@save_restore_iter_loop
+	rts
 
-;;
-;; Resore user screen.
-;; Usually called prior to continuation
-;;
+	;;
+	;; Save one row of screen data
+	;;
+save_restore_user_screen_row
+	PushW     r1
+@sr_user_line_loop
+	lda       r1H
+	beq       @sr_user_tail
+	dec       r1H
+	ldy       #0
+@sr_user_256_loop
+	jsr       mover_shim
+	iny
+	bne       @sr_user_256_loop
+   inc       r0H
+	bra       @sr_user_line_loop
+@sr_user_tail
+   lda       r1L
+	beq       @sr_user_exit
+	ldy       #0
+@sr_user_tail_loop	
+	jsr       mover_shim
+	iny
+	cpy       r1L
+	bne       @sr_user_tail_loop
+@sr_user_exit
+	PopW      r1
+	tya
+	clc
+	adc       r0L
+	sta       r0L
+	bcc       :+
+	inc       r0H
+:	
+	rts
+
+	;;
+	;; Restore the user screen
+	;;
 restore_user_screen
 	pushBankVar bank_assy
 	lda       screen_save_mode
 	sec
 	kerjsr    SCRMOD
 
-	lda       bank_scr1
-	sta       BANK_CTRL_RAM
-	             
-	lda       #<save_screen
-	sta       r1L
-	lda       #>save_screen
-	sta       r1H
+	LoadW     r0,0
+	LoadW     r1,0
+	kerjsr    FB_CURSOR_POSITION
 
-	vgotoXY 0,0
+	LoadW     r1,320
+	LoadW     r2,200
+	LoadW     r3,restore_mover
 
-@restore_row_loop
-	ldy     #0
+	switchBankVar bank_scr1
 
-@restore_line_loop
-	lda     (r1),y
-	sta     VERA_DATA0
-	iny
-	tya
-	cmp     #LAST_COL
-	bne     @restore_line_loop
-
-	lda     r1L
-	clc
-	adc     #LAST_COL
-	sta     r1L
-	bcc     :+
-	inc     r1H
-
-:  
-	stz     SCR_COL
-	inc     SCR_ROW
-	vgoto
-
-	lda     SCR_ROW
-
-	;; If halfway down the screen, switch banks
-	cmp     #ROW_BANK_SWITCH
-	bne     :+
-	lda     bank_scr2
-	sta     BANK_CTRL_RAM
-
-	lda       #<save_screen
-	sta       r1L
-	lda       #>save_screen
-	sta       r1H
-	bra       @restore_row_loop
-
-:  
-	cmp     #LAST_ROW
-	bne     @restore_row_loop
-
+	jsr       save_restore_user_screen_iter
+	
 	popBank
 	rts
 
+	;;
+	;; Movers called from the iter loop
+	;;
+mover_shim
+	jmp       (r3)
+	
+save_mover
+   lda       VERA_DATA0
+   sta       (r0),y
+   rts
+
+restore_mover
+	lda       (r0),y
+	sta       VERA_DATA0
+   rts
 
 ;;
 ;; ------------------------------------------------------------
@@ -907,7 +897,7 @@ restore_user_screen
 ;; Implemented as a stack of 16 bit values, scrollback_ptr always pointing to top of stack
 ;; ------------------------------------------------------------
 
-scrollback_top_ptr      = $A000 +ROW_BANK_SWITCH * LAST_COL
+scrollback_top_ptr      = $A000
 scrollback_ptr          = $c000 - 2
 scrollback_start_ptr    = scrollback_ptr ; also means an empty stack, will not write here
 scrollback_low_water    = scrollback_ptr 
@@ -917,7 +907,7 @@ SCROLLBACK_COUNT        = (scrollback_low_water - scrollback_top_ptr) / 2
 ;; Initialize the scrollback structure
 ;;
 screen_clear_scrollback
-	pushBankVar     bank_scr1
+	pushBankVar     bank_scrollback
 	LoadW           scrollback_ptr,scrollback_start_ptr
 	popBank
 	rts
@@ -928,7 +918,7 @@ screen_clear_scrollback
 ;;        C - C == 0 valid A, C == 1 no prior info available
 ;;
 screen_get_prev_scrollback_address
-	pushBankVar    bank_scr1
+	pushBankVar    bank_scrollback
 
 	MoveW          scrollback_ptr,TMP2
 	
@@ -978,22 +968,24 @@ screen_fail       ; Common exit routines
 ;; Input r1 - Address to push
 ;;
 screen_add_scrollback_address
-	pushBankVar   bank_scr1
+	pushBankVar   bank_scrollback
 	            
 	MoveW          scrollback_ptr,TMP2
 	
 	; Manually expanded ifGE, with #immediate argument
    ; ifGE           #scrollback_top_ptr,TMP2,@screen_add_roll
 	
-	lda 				#>scrollback_top_ptr    ; compare high bytes
-	cmp 				TMP2H
-	bcc 				:+                      ; if NUM1H < NUM2H then NUM1 < NUM2
-	bne 			 	@screen_add_roll        ; if NUM1H <> NUM2H then NUM1 > NUM2 (so NUM1 >= NUM2)
-	lda 				#<scrollback_top_ptr    ; compare low bytes
-	cmp 				TMP2L
-	bcc 				@screen_add_roll        ; if NUM1L < NUM2L then NUM1 < NUM2
+   ifVGE          scrollback_top_ptr,TMP2,@screen_add_roll
+	
+;	lda 				#>scrollback_top_ptr    ; compare high bytes
+;	cmp 				TMP2H
+;	bcc 				:+                      ; if NUM1H < NUM2H then NUM1 < NUM2
+;	bne 			 	@screen_add_roll        ; if NUM1H <> NUM2H then NUM1 > NUM2 (so NUM1 >= NUM2)
+;	lda 				#<scrollback_top_ptr    ; compare low bytes
+;	cmp 				TMP2L
+;	bcs 				@screen_add_roll        ; if NUM1L < NUM2L then NUM1 < NUM2
 
-:
+;:
 	sec
 	lda            TMP2L
 	sbc            #2

@@ -76,7 +76,10 @@
 	CUR_LEFT=$9D
 	CUR_RIGHT=$1D
 	
-	ENTER_BASIC = $FF47
+   FB_GET_PIXELS      = $F002
+   FB_CURSOR_POSITION = $FEFF
+   FB_NEXT_LINE       = $FF02
+	ENTER_BASIC        = $FF47
 	OPEN    = $FFC0
 	SCRMOD  = $FF5f
 	FETCH   = $FF74
@@ -108,6 +111,7 @@
 	FILE_LA       = $028f
 	FILE_SA       = $0290
 	FILE_FA       = $0291
+   cscrmd        = $0261
 	;;
 	
 	JSRFAR_VECTOR = $FF6E
@@ -158,6 +162,18 @@
 	bcc :+     ; if NUM1H < NUM2H then NUM1 < NUM2
 	bne then   ; if NUM1H <> NUM2H then NUM1 > NUM2 (so NUM1 >= NUM2)
 	lda v1     ; compare low bytes
+	CMP v2
+	bcs then   ; if NUM1L >= NUM2L then NUM1 >= NUM2
+	:  
+	.endmacro
+	
+										  ; 16 bit unsigned compare
+	.macro ifVGE   v1,v2,then
+	lda #>v1   ; compare high bytes
+	cmp v2+1
+	bcc :+     ; if NUM1H < NUM2H then NUM1 < NUM2
+	bne then   ; if NUM1H <> NUM2H then NUM1 > NUM2 (so NUM1 >= NUM2)
+	lda #<v1   ; compare low bytes
 	CMP v2
 	bcs then   ; if NUM1L >= NUM2L then NUM1 >= NUM2
 	:  

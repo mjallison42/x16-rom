@@ -37,15 +37,17 @@ bank_initialize
 	dec
 	sta     bank_assy
 	dec
-	sta     bank_scr1
-	dec
-	sta     bank_scr2
-	dec
 	sta     bank_meta_l
 	dec
 	sta     bank_meta_i
 	dec
 	sta     bank_plugin
+	dec
+	sta     bank_scrollback
+	dec
+	sta     bank_scr1
+	dec
+	sta     bank_scr2
 	rts
 
 ;;;

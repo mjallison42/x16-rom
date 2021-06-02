@@ -529,11 +529,13 @@ encode_string
 	sec
 	rts
 
-;;
-;; Encode a series of bytes, eg: .byte $01,$02,$42
-;; Input r1 - pointer to string of word values
-;; Output bytes in buffer (encode buffer)
-;;
+	;;
+	;; Encode a series of bytes, eg: .byte $01,$02,$42
+	;; Input r1 - pointer to string of word values
+	;; Output bytes in buffer (encode buffer)
+	;;
+	;; Shares exist points with encode_word_string
+	;;
 encode_byte_string
 	;; extract a series of bytes and push into the byte buffer
 	stz      encode_buffer_size
@@ -546,12 +548,12 @@ encode_byte_string
 	jsr      util_split_string
 	PushW    r2
 	lda      (r1)
-	beq      @encode_byte_exit
+	beq      encode_byte_word_exit
 	jsr      encode_parse_expression
-	bcs      @encode_byte_error
+	bcs      encode_byte_word_error
 	      
 	lda      r1H
-	bne      @encode_byte_error
+	bne      encode_byte_word_error
 	lda      r1L
 	ldy      encode_buffer_size
 	sta      (M1),y
@@ -561,7 +563,7 @@ encode_byte_string
 	bne      @encode_string_byte_loop
 	      
 	stz      r1H
-	lda      #1
+	lda      #1	; Byte count
 	sta      r1L
 	lda      encode_pc
 	sta      r2L
@@ -576,24 +578,26 @@ encode_byte_string
 	      
 	bra      @encode_string_byte_loop
 
-@encode_byte_exit
+encode_byte_word_exit
 	pla                                    ; Discard pushed ptr
 	pla
 	clc
 	rts
 	      
-@encode_byte_error
+encode_byte_word_error
 	pla                                    ; Discard pushed ptr
 	pla   
 	sec
 	rts
 
 
-;;
-;; Encode a series of words, eg: .word $1234,$abcd,$4242
-;; Input r1 - pointer to string of word values
-;; Output bytes in buffer (encode buffer)
-;;
+	;;
+	;; Encode a series of words, eg: .word $1234,$abcd,$4242
+	;; Input r1 - pointer to string of word values
+	;; Output bytes in buffer (encode buffer)
+	;;
+	;; Shares exist points with encode_byte_string
+	;;
 encode_word_string
 	;; extract a series of words and push into the byte buffer
 	stz      encode_buffer_size
@@ -606,9 +610,9 @@ encode_word_string
 	jsr      util_split_string
 	PushW    r2
 	lda      (r1)
-	beq      @encode_word_exit
+	beq      encode_byte_word_exit
 	jsr      encode_parse_expression
-	bcs      @encode_word_error
+	bcs      encode_byte_word_error
 	      
 	ldy      encode_buffer_size
 	lda      r1L
@@ -644,19 +648,6 @@ encode_word_string
 :  
 	      
 	bra      @encode_string_word_loop
-
-@encode_word_exit
-	pla                                    ; Discard pushed ptr
-	pla
-	clc
-	rts
-	      
-@encode_word_error
-	pla                                    ; Discard pushed ptr
-	pla   
-	sec
-	rts
-
 
 ;;
 ;; Pseudo op CSTR

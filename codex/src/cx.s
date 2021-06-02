@@ -607,6 +607,10 @@ asm_define
 	PushW      r1
 	MoveW      r2,r1
 	jsr        util_trim_string
+	lda		(r1)
+	cmp		#'$'
+	bne		@asm_define_parse_error
+	IncW		r1
 	jsr        util_parse_hex
    bcs        @asm_define_parse_error
 	MoveW      r1,r2

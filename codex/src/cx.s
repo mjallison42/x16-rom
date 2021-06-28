@@ -915,8 +915,10 @@ asm_edit_inst
 	LoadW      r1,input_string
 	jsr        util_trim_string
 
-	LoadW      r2,code_buffer
+	LoadW      r2,tmp_string_stash
+	pushBankVar bank_assy
 	jsr        util_strcpy ; stash the newly editing string for the second pass
+	popBank
 	jsr        encode_string
 	bcc        @asm_edit_no_error1
 	jmp        asm_edit_inst_error
@@ -957,7 +959,13 @@ asm_edit_inst
 	;; There are exactly the needed bytes at the edit point, just replace the bytes from the encode pass
 	;; Do same as insert_inst now
 	stz        encode_dry_run ; Turns encode into full encode pass
-	LoadW      r1,code_buffer
+	
+	LoadW      r1,tmp_string_stash
+	LoadW      r2,input_string
+	pushBankVar  bank_assy
+	jsr        util_strcpy
+	popBank
+	MoveW      r2,r1
 	jsr        encode_string
 
 	jsr        asm_apply_encoding

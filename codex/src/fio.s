@@ -40,11 +40,18 @@ file_open
 	kerjsr  SETLFS
 
 	kerjsr  OPEN
+	bne     file_open_error
+	clc
+	rts
+
+file_open_error
+	lda     #4                 ; File not found
+	sec
 	rts
 	
 ;;
 ;; Print error - Set error message ptr into ERR_MSG
-;;
+;; Input - Error code
 file_set_error
 	asl
 	tax
@@ -92,12 +99,14 @@ file_open_seq_write_str .byte ",S,W", 0
 ;;       r2 - ptr to extension string
 ;;       r3 - ptr to open arguments, e.g. ",s,w" or ",s,r"
 ;;
+;; Output A - length of value in destination string
+;;
 ;; Clobbers r4L
 ;;
 file_replace_ext
 	;; modify the string to be XXX.DBG
 	;; Find the last instance of "." and 
-	;; append .DBG
+	;; append the extension, e.g. ".DBG"
 	stz        r4L
 
 	ldy        #0
@@ -174,8 +183,7 @@ file_load_bank_a000
 	jsr        file_replace_ext
 	             
 	;; Rely on the preservation of r1
-	lda        input_string_length
-	sta        r2L
+	sta        r2L        ; a contains length of input_string
 	lda        #4
 	sta        r2H
 	jsr        file_open
@@ -231,6 +239,7 @@ file_load_bank_a000
 
 file_load_debug_the_error
 	jsr      file_set_error
+	plp
 	sec
 	rts
 
@@ -242,4 +251,4 @@ file_load_debug_bad_dbg
 	sec
 	rts
 
-str_debug_incompat .byte "INCOMPATIBLE DBG INFO", 0
+str_debug_incompat .byte "INVALIDT DBG INFO", 0

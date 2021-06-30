@@ -177,13 +177,6 @@ main_65c02_ok
 	stz        orig_file_name
 	popBank
 
-	;; Save the original stack so a return to the main_loop can be done
-	tsx
-	lda     bank_assy
-	sta     BANK_CTRL_RAM
-	stx     original_sp
-	stz     BANK_CTRL_RAM
-
 	jsr     clear
 
 main_loop      
@@ -232,7 +225,7 @@ str_is_dirty    .byte "DISCARD CHANGES: Y/N", 0
 main_dispatch_table
 	.word   file_loop       ; F1
 	.word   asm_loop        ; F3
-	.word   meta_i_insp     ; F5
+	.word   0               ; F5
 	.word   watch_loop      ; F7
 	.word   view_loop       ; F2
 	.word   main_run_prgrm  ; F4
@@ -357,7 +350,7 @@ view_dispatch_table
 	.word   0                   ; F5
 	.word   0                   ; F7
 	.word   view_user_screen    ; F2
-	.word   0                   ; F4
+	.word   view_meta_i         ; F4
 	.word   0                   ; F6
 
 view_mem
@@ -392,106 +385,17 @@ view_user_screen
 ;; View symbols in memory
 ;;
 view_symbols
-;	jsr      clear_content
-;
-;	lda      #DATA_ROW
-;	asl
-;	sta      r13L
-;	LoadW    r2,label_data_start
-;
-;	pushBankVar   bank_meta_l
-;	
-;:
-;	lda     r13L
-;	
-;	cmp     #(LAST_ROW*2)
-;	beq     view_symbols_exit
-;	
-;	lsr
-;	sta     SCR_ROW
-;	
-;	bcc     @view_col_0
-; 
-;@view_col_1
-;	lda     #(HDR_COL + 25)
-;	bra     @view_symbol_continue
-;
-;@view_col_0
-;	lda     #HDR_COL
-;
-;@view_symbol_continue
-;	sta     SCR_COL
-;	jsr     vera_goto
-;	
-;	jsr     view_symbol_prt_line
-;	bcs     view_symbols_exit
-;	
-;	inc     r13L
-;
-;	bra     :-
-;
-;view_symbols_exit
-;	callR1 wait_for_keypress,0
-;	popBank
-;
-	rts
+	LoadW         r1,str_sym_viewer
+view_common_plugin_run
+	jmp           load_and_run_plugin
 
 ;;
-;; Print the next symbol to the screen
-;;
-;view_symbol_prt_line
-;	;; Grab string pointer
-;	ldy     #3
-;	lda     (r2),y
-;	sta     M1H
-;	dey
-;	lda     (r2),y
-;	dey
-;	sta     M1L
-;	ora     M1H
-;	beq     view_symbol_prt_line_done
-;
-;	lda     #'$'
-;	jsr     vera_out_a
-;
-;	;; grab value
-;	lda     (r2),y
-;	dey
-;	tax
-;	jsr     prthex
-;
-;	lda     (r2),y
-;	tax
-;	jsr     prthex
-;	
-;	;; spacer
-;	lda     #' '
-;	jsr     vera_out_a
-;	lda     #' '
-;	jsr     vera_out_a
-;
-;	;; print string symbol
-;	lda     M1H
-;	sta     r1H
-;	lda     M1L
-;	sta     r1L
-;	jsr     prtstr
-;
-;	;; point to next
-;	lda     #4
-;	clc
-;	adc     r2L
-;	sta     r2L
-;	bcc     :+
-;	inc     r2H
-;:  
-;	clc
-;	rts
-
-;view_symbol_prt_line_done
-;	sec
-;	rts
-
+;;	Load the instruction meta viewer
+;;	
+view_meta_i
+	LoadW         r1,str_meta_i_viewer
+	jmp           load_and_run_plugin
+	
 ;;
 ;; Asm sub menu
 ;;
@@ -2516,33 +2420,17 @@ exe_load_setup_dbg
 	rts
 	
 	
+;;
 ;;	Load the text decompiler into an $A000 bank, execute it.
 ;;	
 file_save_text
 	LoadW         r1,str_decompiler
-	jsr           load_and_run_plugin
-	clc
-	rts
+	jmp           load_and_run_plugin
 	
 str_decompiler    .byte "CX-DC", 0
-
-;; -------------------------------------------------------------------------------------------------
-;;	
-;;	Load the meta_i viewer into an $A000 bank, execute it.
-;;	
-	.ifdef DEV
-meta_i_insp
-	LoadW         r1,str_meta_i_insp
-	jsr           load_and_run_plugin
-	clc
-	rts
+str_meta_i_viewer .byte "CX-MII", 0
+str_sym_viewer    .byte "CX-SYM", 0
 	
-str_meta_i_insp  .byte "CX-MII", 0
-	.else
-	meta_i_insp = 0
-	.endif
-
-
 ;;	
 ;;	Load the plugin (string in r1) and run it (in bank_plugin)
 ;;	Input r1 - String pointer to plugin executable name
@@ -2555,13 +2443,20 @@ load_and_run_plugin
 	jsr           util_strcpy
 
 	callR1        file_load_bank_a000,0
+	bcs           load_and_run_exit
 	switchBankVar bank_assy
 	callR1R2      util_strcpy,orig_file_name,code_buffer
 	switchBankVar bank_plugin
 	jsr           $a000
+	bcs           load_and_run_exit
 	popBank
+	clc
 	rts
 
+load_and_run_exit
+	popBank
+	sec
+	rts
 
 ;; -------------------------------------------------------------------------------------------------
 

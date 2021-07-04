@@ -150,14 +150,14 @@ cx: $(CX_SRCS) $(CX_INCS) $(DEV_OBJS)  $(OBJDIR)/cx.o
 $(BUILD_DIR)/codex.bin: $(CX_SRCS) $(CX_INCS) $(CX_OBJS) $(KSUP_VECS) $(CFG_DIR)/codex-x16.cfg cx
 	ld65 --config $(CFG_DIR)/codex-x16.cfg --mapfile $(BUILD_DIR)/codex.map -Ln $(BUILD_DIR)/codex.sym -o $(BUILD_DIR)/codex.bin $(CX_OBJS) $(KSUP_VECS)
 
-cx-dc: $(CX_DC_SRCS) $(CX_INCS) $(CX_DC_OBJS) $(PLUGIN_OBJS) $(CFG_SUBDIR)/cx-dc.cfg
-	ld65 --config $(CFG_SUBDIR)/cx-dc.cfg --mapfile cx-dc.map -Ln cx-dc.sym -o cx-dc $(CX_DC_OBJS) $(PLUGIN_OBJS)
+cx-dc: $(CX_DC_SRCS) $(CX_INCS) $(CX_DC_OBJS) $(PLUGIN_OBJS) $(CFG_SUBDIR)/cx-plugin.cfg
+	ld65 --config $(CFG_SUBDIR)/cx-plugin.cfg --mapfile cx-dc.map -Ln cx-dc.sym -o cx-dc $(CX_DC_OBJS) $(PLUGIN_OBJS)
 
-cx-mii: $(CX_MII_SRCS) $(CX_INCS) $(CX_MII_OBJS) $(PLUGIN_OBJS) $(CFG_SUBDIR)/cx-dc.cfg
-	ld65 --config $(CFG_SUBDIR)/cx-dc.cfg --mapfile cx-mii.map -Ln cx-mii.sym -o cx-mii $(CX_MII_OBJS) $(PLUGIN_OBJS) 
+cx-mii: $(CX_MII_SRCS) $(CX_INCS) $(CX_MII_OBJS) $(PLUGIN_OBJS) $(CFG_SUBDIR)/cx-plugin.cfg
+	ld65 --config $(CFG_SUBDIR)/cx-plugin.cfg --mapfile cx-mii.map -Ln cx-mii.sym -o cx-mii $(CX_MII_OBJS) $(PLUGIN_OBJS) 
 
-cx-sym: $(CX_SYM_SRCS) $(CX_INCS) $(CX_SYM_OBJS) $(PLUGIN_OBJS) $(CFG_SUBDIR)/cx-dc.cfg
-	ld65 --config $(CFG_SUBDIR)/cx-dc.cfg --mapfile cx-sym.map -Ln cx-sym.sym -o cx-sym $(CX_SYM_OBJS) $(PLUGIN_OBJS) 
+cx-sym: $(CX_SYM_SRCS) $(CX_INCS) $(CX_SYM_OBJS) $(PLUGIN_OBJS) $(CFG_SUBDIR)/cx-plugin.cfg
+	ld65 --config $(CFG_SUBDIR)/cx-plugin.cfg --mapfile cx-sym.map -Ln cx-sym.sym -o cx-sym $(CX_SYM_OBJS) $(PLUGIN_OBJS) 
 
 $(OBJDIR)/kernsup_cx.o : $(SRCDIR)/kernsup_cx.s
 	$(AS) --verbose -I $(ROM_INCLUDE) -I $(KSUP_INCLUDE) $(KSUP_DEFS) --listing $(SRCDIR)/kernsupcx.l -o $(OBJDIR)/kernsup_cx.o $(SRCDIR)/kernsup_cx.s

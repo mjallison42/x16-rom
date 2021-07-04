@@ -98,6 +98,7 @@
 	.code
 	             
 	.include "bank.inc"
+	.include "cx_vecs.inc"
 	.include "screen.inc"
 	.include "bank_assy.inc"
 	.include "petsciitoscr.inc"
@@ -120,17 +121,6 @@
 	.include "meta_i.inc"
 	.include "fio.inc"
 
-	;; CodeX vectors
-
-vec_meta_get_region         = $FAE8
-vec_meta_get_label          = $FAEB
-vec_meta_find_label         = $FAEE
-vec_meta_expr_iter_next     = $FAF1
-vec_meta_print_banked_label = $FAF4
-vec_decode_next_instruction = $FAF7
-vec_decode_next_argument    = $FAFA
-vec_decode_get_byte_count   = $FAFD   
-
 ;;
 ;; Main mode display dispatchers
 ;;
@@ -150,6 +140,8 @@ vec_decode_get_byte_count   = $FAFD
 main_entry: 
 	lda     orig_color
 	sta     K_TEXT_COLOR
+
+;	callR1   print_header,view_symbol_header
 
 	jsr     clear_content
 	
@@ -203,14 +195,23 @@ view_symbols_exit
 	sec
 	rts
 	
-str_done:        .byte "PRESS ANY KEY TO CONTINUE: ", 0
-str_done_exit:   .byte "PRESS ANY KEY TO EXIT: ", 0
-
 ;;
 ;; Print the next symbol to the screen
 ;; Input R4 - ptr to next entry	
 ;;
 view_symbol_prt_line
+	ifNe16  r4,selected_label,view_symbol_no_highlight
+	lda     orig_color
+	and     #$0F
+	ora     #(COLOR_CDR_BACK_HIGHLIGHT << 4)
+	sta     K_TEXT_COLOR
+	bra     view_symbol_set_color
+
+view_symbol_no_highlight
+	lda     orig_color
+view_symbol_set_color	
+	sta     K_TEXT_COLOR
+
 	jsr     vec_meta_get_label
 	
 	lda     r0L
@@ -253,6 +254,24 @@ view_symbol_prt_line_done
 	rts
 
 ;;
+;; Create a new symbol value
+;;
+view_symbol_new
+	rts
+	
+;;
+;; Delete the selected symbol
+;;
+view_symbol_delete
+	rts
+	
+;;
+;; Edit the selected symbol
+;;
+view_symbol_edit
+	rts
+	
+;;
 ;; Wait for a key press
 ;;
 wait_for_keypress
@@ -276,4 +295,25 @@ clear_content
 	jsr     erase_box
 	rts
 	
+	;; Constants
+	
+str_done:			.byte "PRESS ANY KEY TO CONTINUE: ", 0
+str_done_exit:		.byte "PRESS ANY KEY TO EXIT: ", 0
+
+;;; -------------------------------------------------------------------------------------
+view_symbol_header   .byte " MEM  SCRN  SYMB                      BACK", 0
+	
+view_symbol_dispatch_table                
+	.word   view_symbol_new    ; F1
+	.word   view_symbol_edit   ; F3
+	.word   0                  ; F5
+	.word   0                  ; F7
+	.word   view_symbol_delete ; F2
+	.word   0                  ; F4
+	.word   0                  ; F6
+
+	;; Variables
+
+selected_label:	.word $a012
+
 	.endproc

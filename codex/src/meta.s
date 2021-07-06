@@ -1,7 +1,7 @@
 ;;;
 ;;; Interface for metadata bank for the Commander 16 Assembly Language Environment
 ;;;
-;;; Copyright 2020 Michael J. Allison
+;;; Copyright 2020-2021 Michael J. Allison
 ;;; License, 2-clause BSD, see license.txt in source package.
 ;;; 
 
@@ -353,6 +353,8 @@ meta_add_label
 
 	MoveW  r2,meta_str_addr
 	             
+	lda    #1
+	jsr    set_dirty
 	jmp    meta_success
 
 @meta_add_label_exists_error
@@ -540,6 +542,8 @@ meta_delete_label
 	bra       @meta_delete_label_patch_loop
 
 @meta_delete_label_patch_exit
+	lda    #1
+	jsr    set_dirty
 	jmp     meta_success
 	             
 ;;

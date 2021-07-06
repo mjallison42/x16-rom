@@ -11,6 +11,7 @@
 	.include "bank.inc"
 	.include "bank_assy.inc"
 	.include "bank_assy_vars.inc"
+	.include "cx_vecs.inc"
 	.include "decoder.inc"
 	.include "decoder_vars.inc"
 	.include "kvars.inc"
@@ -26,7 +27,7 @@
 	.export draw_horizontal_line, draw_vertical_line, save_vera_state, restore_vera_state, save_user_screen, restore_user_screen
 	.export screen_clear_scrollback, screen_get_prev_scrollback_address, screen_add_scrollback_address
 	.export prtstr, print_horizontal_line, gotoPrompt, prtxlatedcodes, prthexbytes, prthex, prtspaceto
-	.export rdhex2, bs_out_str, prtstr_shim, prtstr_at_xy
+	.export rdhex2, bs_out_str, prtstr_shim, prtstr_at_xy, print_header
 
 	.export SCROLLBACK_COUNT
 	.exportzp SCR_QUOTE, DATA_ROW, DBL_QUOTE
@@ -1435,3 +1436,52 @@ rdhex_asl_value
 	pla
 	rts
 
+;;
+;; print_header
+;; Print the F1 F3, etc header, with labels
+;;
+print_header
+	PushW   r1
+
+	ldx     #HDR_COL
+	ldy     #HDR_ROW
+	callR1  prtstr_at_xy,fn_header
+
+	ldx     BANK_CTRL_RAM
+	jsr     prthex
+
+	ldx     #0
+	ldy     SCR_ROW
+	iny                             ; Save a byte, vera_goto will store in SCR_COL, SCR_ROW
+
+	PopW    r1
+	jsr     prtstr_at_xy            ; r1 has sub header from caller
+
+	lda     #50
+	sta     SCR_COL
+	jsr     vera_goto
+	callR1  prtstr,str_region_start
+	jsr     vec_meta_get_region
+	ldx     r0H
+	jsr     prthex
+	ldx     r0L
+	jsr     prthex
+	
+	charOut ','
+	charOut '$'
+
+	ldx     r1H
+	jsr     prthex
+	ldx     r1L
+	jsr     prthex
+	
+	callR1       prtstr,str_region_end
+
+	lda     orig_color
+	sta     K_TEXT_COLOR
+	jsr     print_horizontal_line
+	rts
+	
+fn_header            .byte " F1   F2   F3   F4   F5    F6    F7   F8         RAM BANK = ", 0
+str_region_start     .byte "PRGM REGION[$", 0
+str_region_end       .byte "]", CR, 0

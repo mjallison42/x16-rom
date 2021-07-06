@@ -9,8 +9,9 @@
 	.feature labels_without_colons
 	
 	.exportzp BANK_CTRL_ROM, BANK_CTRL_RAM, KERNAL_ROM, CX_ROM
-	.export bank_initialize, bank_pop, bank_push
+	.export bank_initialize, bank_pop, bank_push, set_dirty
 
+	.include "bank_assy.inc"
 	.include "bank_assy_vars.inc"
 	
 	__X16_BANK__=1
@@ -113,3 +114,15 @@ bank_push
 	ldx   TMP2L
 
 	rts
+	
+;;
+;; Set dirty bit to value in A
+;;
+set_dirty
+	tay
+	lda         bank_assy
+	jsr         bank_push
+	sty         assy_dirty
+	jsr         bank_pop
+	rts
+

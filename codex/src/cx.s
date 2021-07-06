@@ -1,7 +1,7 @@
 	;;
 	;; Commander 16 CodeX Interactive Assembly Environment
 	;; 
-	;;    Copyright 2020 Michael J. Allison
+	;;    Copyright 2020-2021 Michael J. Allison
 	;; 
 	;;    Redistribution and use in source and binary forms, with or without
 	;;    modification, are permitted provided that the following conditions are met:
@@ -108,6 +108,7 @@
 	.code
 	
 	.include "bank.inc"
+	.include "cx_vecs.inc"
 	.include "screen.inc"
 	.include "bank_assy.inc"
 	.include "petsciitoscr.inc"
@@ -2019,53 +2020,6 @@ read_address_with_prompt
 	clc
 	rts
 
-;;
-;; print_header
-;; Print the F1 F3, etc header, with labels
-;;
-print_header
-	PushW   r1
-
-	ldx     #HDR_COL
-	ldy     #HDR_ROW
-	callR1  prtstr_at_xy,fn_header
-
-	ldx     BANK_CTRL_RAM
-	jsr     prthex
-
-	ldx     #0
-	ldy     SCR_ROW
-	iny                             ; Save a byte, vera_goto will store in SCR_COL, SCR_ROW
-
-	PopW    r1
-	jsr     prtstr_at_xy            ; r1 has sub header from caller
-
-	lda     #50
-	sta     SCR_COL
-	jsr     vera_goto
-	callR1  prtstr,str_region_start
-	jsr     meta_get_region
-	ldx     r0H
-	jsr     prthex
-	ldx     r0L
-	jsr     prthex
-	
-	charOut ','
-	charOut '$'
-
-	ldx     r1H
-	jsr     prthex
-	ldx     r1L
-	jsr     prthex
-	
-	callR1       prtstr,str_region_end
-
-	lda     orig_color
-	sta     K_TEXT_COLOR
-	jsr     print_horizontal_line
-	rts
-	
-fn_header            .byte " F1   F2   F3   F4   F5    F6    F7   F8         RAM BANK = ", 0
 main_header          .byte " FILE VIEW ASM  RUN              WATC EXIT", 0
 break_header         .byte "      VIEW      CONT STEP  STIN  WATC STOP", 0
 file_header          .byte " NEW  LOAD SAVE TEXT                  BACK", 0
@@ -2103,8 +2057,6 @@ str_register_y       .byte " Y   ", 0
 str_register_sp      .byte " SP  ", 0
 str_syntax_fail      .byte "INVALID SYNTAX", 0
 str_can_not_add      .byte "CAN'T ADD", 0
-str_region_start     .byte "PRGM REGION[$", 0
-str_region_end       .byte "]", CR, 0
 str_empty            .byte 0
 
 	.ifdef DEV
@@ -2704,16 +2656,6 @@ init_state_variables
 	sta     screen_save_mode
 	popBank
 	
-	rts
-
-;;
-;; Set dirty bit to value in A
-;;
-set_dirty
-	tay
-	pushBankVar bank_assy
-	sty         assy_dirty
-	popBank
 	rts
 
 ;;	

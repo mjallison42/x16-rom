@@ -2,7 +2,7 @@
 	;; Commander 16 CodeX Interactive Assembly Environment
 	;; Symbol debugger tool.
 	;; 
-	;;    Copyright 2020 Michael J. Allison
+	;;    Copyright 2020-2021 Michael J. Allison
 	;; 
 	;;    Redistribution and use in source and binary forms, with or without
 	;;    modification, are permitted provided that the following conditions are met:
@@ -121,15 +121,13 @@
 	.include "meta_i.inc"
 	.include "fio.inc"
 
+ROW_COUNT = LAST_ROW - DATA_ROW - 4
+COL_1 = 1
+COL_2 = 30
+	
 ;;
 ;; Main mode display dispatchers
 ;;
-;; Read keys, dispatch based on function key pressed.
-;; Since these are relatively short (right now), they are
-;; hard coded. Should the volume of these grow too much
-;; a data driven (table) version can be coded.
-;;
-;; Main loop, and dispatch
 ;; 
 	.proc main
 ;;; -------------------------------------------------------------------------------------
@@ -138,60 +136,255 @@
 	.export main_entry
 	
 main_entry: 
+	setDispatchTable view_symbol_dispatch_table
 	lda     orig_color
 	sta     K_TEXT_COLOR
 
 ;	callR1   print_header,view_symbol_header
 
 	jsr     clear_content
+
+	LoadW   r1,label_data_start
+	jsr     view_symbols_set_page
 	
-	lda      #DATA_ROW
-	asl
-	sta      r13L
-	LoadW    r4,label_data_start
+view_symbols_page_loop	
+	callR1   print_header,view_symbol_header
+	
+	MoveW   current_page_col1,r4
+	
+	jsr     view_symbol_page
+	jsr     get_and_dispatch
+	bcs     view_symbols_exit
+	
+	cmp     #CUR_RIGHT
+	bne     vs_loop1
+	jsr     view_symbols_right
+	bra     view_symbols_page_loop
+	
+vs_loop1:	
+	cmp     #CUR_LEFT
+	bne     vs_loop2
+	jsr     view_symbols_left
+	bra     view_symbols_page_loop
+	
+vs_loop2:	
+	cmp     #CUR_DN
+	bne     vs_loop3
+	jsr     view_symbols_down
+	bra     view_symbols_page_loop
+	
+vs_loop3:	
+	cmp     #CUR_UP
+	bne     vs_loop4
+	jsr     view_symbols_up
+	
+vs_loop4:	
+	bra     view_symbols_page_loop
+
+view_symbols_exit
+	jsr     clear_content
+
+	sec
+	rts
+	
+;;
+;;
+;;
+view_symbols_set_page:
+	MoveW   r1,current_page_col1
+	
+	LoadW   r0,(ROW_COUNT * 4)
+	AddW    r0,r1
+	MoveW   r1,current_page_col2
+	
+	LoadW   r3,4
+	SubW    r3,r1
+	MoveW   r1,current_end_of_col1
+	
+	AddW    r0,r1
+	MoveW   r1,current_end_of_col2
+
+	rts
+
+;;
+;;
+;;
+view_symbols_up:
+	MoveW    selected_label,r1
+	lda      r1L
+	sec
+	sbc      #4
+	sta      r1L
+	bcs      :+
+	dec      r1H
+:
+	jsr      view_symbols_set_selected
+	
+	MoveW    current_page_col1,r0
+	ifGE     r1,r0,vs_up_exit
+	
+	LoadW    r2,(ROW_COUNT *2 * 4)
+	SubW     r2,r0
+	MoveW    r0,r1
+
+	jsr      view_symbols_set_page
+	jsr      clear_content
+	MoveW    current_end_of_col2,r1
+	MoveW    current_page_col2,r3
+	ifGE     r1,r3,vs_up_is_col2
+
+	lda      #COL_1
+	sta      selected_col
+	rts
+		
+vs_up_is_col2:
+	lda      #COL_2
+	sta      selected_col
+
+vs_up_exit:	
+	rts
+	
+;;
+;;
+;;
+view_symbols_down:
+	MoveW    selected_label,r0
+	ifEq16   r0,global_end,view_symbols_down_exit
+
+	lda      r0L
+	clc
+	adc      #4
+	sta      r0L
+	bcc      :+
+	inc      r0H
+:
+	MoveW    r0,r1
+	jsr      view_symbols_set_selected
+
+	MoveW    current_end_of_col2,r1
+	ifGE     r1,r0,view_symbols_down_exit
+	MoveW    current_end_of_col2,r1
+	LoadW    r2,4
+	AddW     r2,r1
+	lda      #COL_1
+	sta      selected_col
+	jsr      view_symbols_set_page
+	jsr      clear_content
+
+view_symbols_down_exit:	
+	rts
+	
+;;
+;;
+;;
+view_symbols_right:
+	lda      selected_col
+	cmp      #COL_2
+	beq      vs_right_exit
+
+	lda      #COL_2
+	sta      selected_col
+
+	MoveW    selected_label,r0
+	lda      r0L
+	clc
+	adc      #(ROW_COUNT * 4)
+	sta      r0L
+	bcc      :+
+	inc      r0H
+:
+	MoveW    r0,selected_label
+vs_right_exit:	
+	rts
+	
+;;
+;;
+;;
+view_symbols_left:
+	lda      selected_col
+	cmp      #COL_1
+	beq      vs_left_exit
+
+	lda      #COL_1
+	sta      selected_col
+
+	MoveW    selected_label,r0
+	lda      r0L
+	sec
+	sbc      #(ROW_COUNT * 4)
+	sta      r0L
+	bcs      :+
+	dec      r0H
+:
+	MoveW    r0,selected_label
+vs_left_exit:	
+	rts
+	
+;;
+;; Set the selected entry, but limit it to min/max entries
+;; Input R1 - candidate entry
+;;	
+view_symbols_set_selected:
+	PushW  r0
+	LoadW  r0,label_data_start
+	ifGE   r1,r0,vs_set_value
+	LoadW  r1,label_data_start
+	
+vs_set_value:	
+	MoveW  r1,selected_label
+	
+	PopW   r0
+	rts
+
+;;	
+;;	View a single page of data
+;;	
+view_symbol_page
+	lda     #1
+	sta     r13H
+	lda     #DATA_ROW
+	sta     r13L
 
 :
 	lda     r13L
 	
-	cmp     #((LAST_ROW-4)*2) 
-	bne     view_symbols_no_pause
+	cmp     #(LAST_ROW-4) 
+	bne     view_symbols_continue
+
+	MoveW   current_page_col2,r1
+
+	lda     r13H
+	cmp     #COL_2
+	beq     view_symbol_page_exit
 	
-	; Pause before showing next group
-	callR1  wait_for_keypress,str_done
-	jsr     clear_content
+	lda     #COL_2
+	sta     r13H
 	lda     #DATA_ROW
-	asl
 	sta     r13L
+	bra     view_symbols_continue
+
+view_symbol_page_exit:	
+   ; column may be done is done, return
+	clc
+	rts
 	
-view_symbols_no_pause
-	lsr
+view_symbols_continue
 	sta     SCR_ROW
-	
-	bcc     @view_col_0
- 
-@view_col_1
-	lda     #(HDR_COL + 40)
-	bra     @view_symbol_continue
-
-@view_col_0
-	lda     #HDR_COL
-
-@view_symbol_continue
+	lda     r13H
 	sta     SCR_COL
 	jsr     vera_goto
 	
 	jsr     view_symbol_prt_line
-	bcs     view_symbols_exit
+	bcs     view_symbols_page_exit
 	
 	inc     r13L
 
 	bra     :-
 
-view_symbols_exit
-	callR1  wait_for_keypress,str_done_exit
-
-	jsr     clear_content
-
+view_symbols_page_exit
+	LoadW   r0,4
+	SubW    r0,r4
+	MoveW   r4,global_end
 	sec
 	rts
 	
@@ -201,9 +394,7 @@ view_symbols_exit
 ;;
 view_symbol_prt_line
 	ifNe16  r4,selected_label,view_symbol_no_highlight
-	lda     orig_color
-	and     #$0F
-	ora     #(COLOR_CDR_BACK_HIGHLIGHT << 4)
+	lda     #((COLOR_CDR_BACK_HIGHLIGHT << 4) | COLOR_YELLOW)
 	sta     K_TEXT_COLOR
 	bra     view_symbol_set_color
 
@@ -257,18 +448,75 @@ view_symbol_prt_line_done
 ;; Create a new symbol value
 ;;
 view_symbol_new
+	stz        input_string
+	callR1R2   read_string_with_prompt,str_define_prompt,0
+view_symbol_add_parse
+	lda        #' '
+	jsr        util_split_string     ; R1 still set to point to input_string
+	PushW      r1
+	MoveW      r2,r1
+	jsr        util_trim_string
+	lda		  (r1)
+	cmp		  #'$'
+	bne		  @asm_define_parse_error
+	IncW		  r1
+	jsr        util_parse_hex
+   bcs        @asm_define_parse_error
+	MoveW      r1,r2
+	PopW       r1
+	jsr        vec_meta_add_label
+	bcc        @asm_define_normal_exit
+@asm_define_can_not_add
+	LoadW      ERR_MSG,str_can_not_add
+	rts
+
+@asm_define_parse_error
+	PopW       r1
+	LoadW      ERR_MSG,str_bad_address
+	rts
+
+@asm_define_normal_exit
+	clc
 	rts
 	
 ;;
 ;; Delete the selected symbol
 ;;
 view_symbol_delete
+	MoveW    selected_label,r4
+	jsr      vec_meta_get_label
+	MoveW    r0,r1
+	jsr      vec_meta_delete_label
+	clc
 	rts
 	
 ;;
 ;; Edit the selected symbol
 ;;
 view_symbol_edit
+	MoveW    selected_label,r4
+	jsr      vec_meta_get_label
+	PushW    r0                        ; save value for lookup during replace edit
+
+	; r1 already set up from "get_label"
+	LoadW    r2,code_buffer
+	jsr      util_strcpy
+	
+	callR1R2 read_string_with_prompt,str_define_prompt,code_buffer
+	bcs      view_symbol_edit_abort
+	MoveW    r0,r1
+	jsr      vec_meta_delete_label      ; Get rid of old definitions
+	PopW     r1                         ; Restore value for the new definition
+	MoveW    r1,r2
+	LoadW    r1,input_string
+	jsr      vec_meta_add_label
+:
+	clc
+	rts
+
+view_symbol_edit_abort
+	PopW     r0
+	clc
 	rts
 	
 ;;
@@ -289,6 +537,9 @@ wait_for_keypress
 ;;	Clear the area under the header
 ;;	
 clear_content
+	lda     orig_color
+	sta     K_TEXT_COLOR
+
 	vgotoXY 0,HDR_ROW+3
 	ldx     #80
 	ldy     #57
@@ -297,12 +548,14 @@ clear_content
 	
 	;; Constants
 	
-str_done:			.byte "PRESS ANY KEY TO CONTINUE: ", 0
-str_done_exit:		.byte "PRESS ANY KEY TO EXIT: ", 0
-
-;;; -------------------------------------------------------------------------------------
-view_symbol_header   .byte " MEM  SCRN  SYMB                      BACK", 0
+str_done:			 .byte "PRESS ANY KEY TO CONTINUE: ", 0
+str_done_exit:		 .byte "PRESS ANY KEY TO EXIT: ", 0
+str_can_not_add    .byte "CAN'T ADD", 0
+str_define_prompt  .byte "DEFINE: ", 0	
+str_bad_address    .byte "BAD VALUE", 0
 	
+view_symbol_header .byte " NEW  DEL  EDIT                       BACK", 0
+
 view_symbol_dispatch_table                
 	.word   view_symbol_new    ; F1
 	.word   view_symbol_edit   ; F3
@@ -314,6 +567,12 @@ view_symbol_dispatch_table
 
 	;; Variables
 
-selected_label:	.word $a012
+selected_label:	   .word label_data_start
+selected_col:	      .byte COL_1
+current_page_col1:   .word 0
+current_end_of_col1:	.word 0
+current_page_col2:	.word 0
+current_end_of_col2:	.word 0
+global_end:				.word $ffff
 
 	.endproc

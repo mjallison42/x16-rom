@@ -970,26 +970,8 @@ decode_arg_zp_bit
 ;;
 ;; Mode for bbs abd bbr instructions
 ;;
-decode_arg_zp_rel 
-	ldy     #0
-	lda     (r2),y
-	lsr                 ; get bit number
-	lsr     
-	lsr     
-	lsr
-	and     #7
-	clc
-	adc     #$30
-	tax
-	lda     #','
-	tay
-	jsr     decode_push_dual_char
-	
-	ldy     #1
-	lda     (r2),y
-	
-	jsr     decode_push_label_or_hex_zp
-
+decode_arg_zp_rel
+	jsr	decode_arg_zp_bit
 	lda     #','
 	jsr     decode_push_char
 

@@ -15,8 +15,8 @@
 	.export  vec_decode_next_instruction, vec_decode_next_argument, vec_decode_get_byte_count
 
 vec_meta_get_region:          jmp   meta_get_region
-;vec_meta_add_label:				jmp   meta_add_label
-;vec_meta_delete_label:			jmp   meta_delete_label
+vec_meta_add_label:				jmp   meta_add_label
+vec_meta_delete_label:			jmp   meta_delete_label
 vec_meta_get_label:           jmp   meta_get_label
 vec_meta_find_label:          jmp   meta_find_label
 vec_meta_expr_iter:           jmp   meta_expr_iter_next

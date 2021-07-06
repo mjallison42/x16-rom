@@ -13,7 +13,7 @@
 	.import draw_horizontal_line, draw_vertical_line, save_vera_state, restore_vera_state, save_user_screen, restore_user_screen
 	.import screen_clear_scrollback, screen_get_prev_scrollback_address, screen_add_scrollback_address
 	.import prtstr, print_horizontal_line, gotoPrompt, prtxlatedcodes, prthexbytes, prthex, prtspaceto
-	.import rdhex2, bs_out_str, prtstr_shim, prtstr_at_xy
+	.import rdhex2, bs_out_str, prtstr_shim, prtstr_at_xy, print_header
 
 	.import SCROLLBACK_COUNT
 	.importzp SCR_QUOTE, DATA_ROW, DBL_QUOTE

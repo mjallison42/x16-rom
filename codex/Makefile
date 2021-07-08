@@ -158,7 +158,7 @@ cx-sym: $(CX_SYM_SRCS) $(CX_INCS) $(CX_SYM_OBJS) $(PLUGIN_OBJS) $(CFG_SUBDIR)/cx
 $(OBJDIR)/kernsup_cx.o : $(SRCDIR)/kernsup_cx.s
 	$(AS) --verbose -I $(ROM_INCLUDE) -I $(KSUP_INCLUDE) $(KSUP_DEFS) --listing $(SRCDIR)/kernsupcx.l -o $(OBJDIR)/kernsup_cx.o $(SRCDIR)/kernsup_cx.s
 
-utest: $(UT_SRCS) $(CX_INCS) $(UT_INCS) $(CFG_SUBDIR)/utest.cfg
+utest: $(UT_SRCS) $(CX_INCS) $(UT_INCS) $(CFG_SUBDIR)/utest.cfg $(BOOTSTRAP_OBJS) $(COMMON_OBJS)
 	$(AS) -I $(INCDIR) -I $(KINCDIR) test/utest.s -l utest.l
-	ld65 --config $(CFG_SUBDIR)/utest.cfg --mapfile utest.map -o utest $(TESTDIR)/utest.o 
+	ld65 --config $(CFG_SUBDIR)/utest.cfg --mapfile utest.map -o utest $(TESTDIR)/utest.o $(BOOTSTRAP_OBJS) $(COMMON_OBJS)
 

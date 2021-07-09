@@ -818,6 +818,13 @@ encode_get_argument_template
 	rts
 
 @encode_get_argument_template_error
+	;; special case, if arg parsed is MODE_ZP_IN, temp use MODE_IND as a backup
+	lda      M2L
+	cmp      #MODE_ZP_IND
+	bne      :+
+	lda      #MODE_IND
+	bra      encode_get_argument_template 
+:	
 	sec
 	rts
 
@@ -852,12 +859,7 @@ encode_parse_emitter_table
 ;;       r1  - value (not needed)
 @encode_one_byte
 	lda      #1
-	sta      encode_buffer_size
-	lda      r2H
-	sta      code_buffer
-	      
-	clc
-	rts
+	bra      @encode_stuff_bytes  ; Common code, saves space
 	      
 ;;
 ;; Two bytes of code
@@ -865,14 +867,7 @@ encode_parse_emitter_table
 ;;       r1  - value
 @encode_two_bytes
 	lda      #2
-	sta      encode_buffer_size
-	lda      r2H
-	sta      code_buffer
-	lda      r1L
-	sta      code_buffer+1
-	      
-	clc
-	rts
+	bra      @encode_stuff_bytes  ; Common code, saves space
 	      
 ;;
 ;; Three bytes of code
@@ -880,6 +875,8 @@ encode_parse_emitter_table
 ;;       r1  - value
 @encode_three_bytes
 	lda      #3
+	
+@encode_stuff_bytes
 	sta      encode_buffer_size
 
 	lda      r2H

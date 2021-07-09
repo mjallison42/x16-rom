@@ -1468,7 +1468,13 @@ testEncoder
 	callR1            encode_string,str_tmp
 	assertCarryClear  str_no_fail_arg
 	assertBuffer3     str_jsr, $20, $00, $10
-	      
+
+	LoadW             encode_pc,$a000
+	callR1            copyString,str_jmp_ind
+   callR1            encode_string,str_tmp
+   assertCarryClear  str_no_fail_jmp_ind
+   assertBuffer3     str_jmp_ind, $6c, $2, $0
+
 @testEncoderMnemonicExit
 	rts
 
@@ -1515,6 +1521,7 @@ str_wai1          .byte     "WAI", 0
 str_brk_bad_arg   .byte     "BRK #42", 0      ; Yep, this is bad syntax!
 str_bad_arg_msg   .byte     "DETECT INVALID ARGUMENT", CR, 0
 str_no_fail_arg   .byte     "ARGUMENT PARSED", CR, 0
+str_no_fail_jmp_ind .byte     "JMP ($2) PARSE", CR, 0	
 str_immed_arg     .byte     "ORA #$43", 0
 str_zp_arg        .byte     "ORA $45", 0
 str_abs_arg       .byte     "ORA $4647", 0
@@ -1531,6 +1538,7 @@ str_branch        .byte     "BRA $A010", 0
 str_bit_zp        .byte     "SMB 3,$02", 0
 str_bit_rel       .byte     "BBS 3,$02,$A010", 0
 str_jsr           .byte     "JSR $1000", 0
+str_jmp_ind       .byte     "JMP ($2)", 0
 ;;
 ;; Special assert for this test
 ;; Input X   - byte Count

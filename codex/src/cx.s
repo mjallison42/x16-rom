@@ -169,7 +169,6 @@ main_entry:
 
 main_65c02_ok
 	jsr     bank_initialize
-	jsr     init_break_vector
 
 	jsr     clear_program_settings
 	
@@ -1160,22 +1159,9 @@ assy_run
 	
 @assy_run_ok
  	; Build a shim, use the encode buffer
-	
-;	jmp        (r2)
-	; build the code shim to transfer control to user program
-	LoadW      r0,code_buffer
-	ldy        #0
-	lda        #$6c
-	sta        (r0),y
-	iny
-	lda        #<r2
-	sta        (r0),y
-	iny
-	lda        #>r2
-	sta        (r0),y
-	
-	kerjsr     code_buffer
-	rts
+	jsr        init_user_shim
+	jmp        run_break_shim
+;	rts        ; Never reach this point, the user_shim does the RTS
 
 @assy_run_abort
 	LoadW      ERR_MSG,str_bad_address
@@ -2426,23 +2412,36 @@ handle_break
 	pla
 	sta       brk_bank
 
-	pla       
+	PushW     r0
+	tsx
+	stx       r0L
+	lda       #1
+	sta       r0H
+	
+	ldy       #8
+	lda       (r0),y
 	sta       brk_data_y
+	iny
 
-	pla
+	lda       (r0),y
 	sta       brk_data_x
+	iny
 
-	pla       
+	lda       (r0),y
 	sta       brk_data_a
+	iny
 
-	pla       
+	lda       (r0),y
 	sta       brk_data_psr
-
-	pla
+	iny
+	
+	lda       (r0),y
 	sta       brk_data_pc
+	iny
 
-	pla       
+	lda       (r0),y
 	sta       brk_data_pc+1
+	iny
 
 	tsx
 	stx       brk_data_sp
@@ -2456,6 +2455,7 @@ handle_break
 	lda       FILE_SA
 	sta       brk_data_sa
 
+	PopW      r0
 	jsr       registers_save
 	
 	;; Adjust PC to handle the goofy +2 increment of the brk instruction
@@ -2477,9 +2477,6 @@ handle_break
 
 	jsr      step_suspend
 	
-	lda       #3
-	kerjsr    CHKIN
-
 	;; DO BREAK STUFF HERE
 	lda       brk_bank
 	sta       BANK_CTRL_RAM
@@ -2487,48 +2484,56 @@ handle_break
 	jsr       save_vera_state
 	jsr       save_user_screen
 
-	jsr       break_loop
-
-	jsr       restore_user_screen
-
-	;; Restore stack for an eventual RTI
-	lda       bank_assy
-	sta       BANK_CTRL_RAM 
-
-	jsr       restore_vera_state
-	
-	lda       brk_data_fa
-	kerjsr    CHKIN
-
-	lda       brk_data_pc+1
-	pha
-
-	lda       brk_data_pc
-	pha
-
-	lda       brk_data_psr
-	pha
-
 	jsr       registers_restore
 	
-	;; Restore A, X, Y, push PSR, PC
-	ldx       brk_data_x
-
-	ldy       brk_data_y
-
-	lda       brk_data_a
-	pha
-	
-	stz       brk_data_valid
-
 	lda       brk_bank
 	sta       BANK_CTRL_RAM
 
-	pla
-	rti
+	rts       ; RTI is executed by the break_shim
+
+;	jsr       break_loop
+
+;	jsr       restore_user_screen
+
+	;; Restore stack for an eventual RTI
+;	lda       bank_assy
+;	sta       BANK_CTRL_RAM 
+
+;	jsr       restore_vera_state
+	
+;	lda       brk_data_fa
+;	kerjsr    CHKIN
+
+;	lda       brk_data_pc+1
+;	pha
+;
+;	lda       brk_data_pc
+;	pha
+;
+;	lda       brk_data_psr
+;	pha
+;
+	
+;	jsr       registers_restore
+	
+	;; Restore A, X, Y, push PSR, PC
+;	ldx       brk_data_x
+;
+;	ldy       brk_data_y
+;
+;	lda       brk_data_a
+;	pha
+;	
+;	stz       brk_data_valid
+;
+;	lda       brk_bank
+;	sta       BANK_CTRL_RAM
+
+;	pla
+;	rts       ; RTI is executed by the break_shim
 
 ;;
-;; Watch sub menu
+;; Break sub menu
 ;;
 break_loop
 	jsr     clear
@@ -2599,33 +2604,63 @@ break_dispatch_table
 	
 ;;
 ;; Initialize break vector to the env
+;; Don't use r2, since it has the exec address in it.
 ;;
-init_break_vector
+init_user_shim
 	pushBankVar bank_assy
 	lda     BRK_VECTOR
 	sta     old_brk_vector
 	lda     BRK_VECTOR+1
 	sta     old_brk_vector+1
-
-	lda     #<handle_break
-	sta     BRK_VECTOR
-	lda     #>handle_break
-	sta     BRK_VECTOR+1
 	popBank
+
+	LoadW   r1,user_shim
+	LoadW   r3,run_break_shim
+	ldy     #shim_size
+@init_user_shim_loop
+	lda     (r1),y
+	sta     (r3),y
+	dey
+	bpl     @init_user_shim_loop
+
+	ldy     #3
+	lda     r2L
+	sta     (r3),y
+	iny
+	lda     r2H
+	sta     (r3),y
+
+	lda     #<(run_break_shim + break_offset)
+	sta     BRK_VECTOR
+	lda     #>(run_break_shim + break_offset)
+	sta     BRK_VECTOR+1
 	rts
 
-restore_break_vector
-	pushBankVar bank_assy
-	lda     old_brk_vector
-	sta     BRK_VECTOR
-	lda     old_brk_vector+1
-	sta     BRK_VECTOR+1
-
-	lda     bank_rom_orig
+;;
+;; The user_shim is a two part piece of code. The first part allows Codex to RUN the user program.
+;; The user_run_shim needs to switch ROM back to the KERNAL and restore to Codex upon return.
+;; The JSR target address is rewritten at init_time	
+;;	
+;; The second part is a shim to handle break interrupts. It ensures that the ROM bank is switched to Codex.
+;;
+user_shim:
+	stz     BANK_CTRL_ROM
+	jsr     $ffff
+   lda     #CX_ROM
 	sta     BANK_CTRL_ROM
+   rts
 	
-	popBank
-	rts
+break_offset = * - user_shim
+break_shim:	
+	jsr     JSRFAR_VECTOR
+	.word   handle_break
+	.byte   $7            ; Codex ROM bank
+	rti
+shim_size = * - user_shim - 1
+	
+	.if shim_size <> 16
+	.error .sprintf("SHIM buffer wrong size. cx_vars.s needs to reserve %d bytes.", shim_size)
+	.endif
 
 ;;
 ;; Clear program settings, set up for a new program

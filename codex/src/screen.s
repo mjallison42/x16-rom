@@ -782,9 +782,9 @@ save_user_screen
 	stx       screen_save_plot_x
 	sty       screen_save_plot_y
 	
-	LoadW     r0,0
-	LoadW     r1,0
-	kerjsr    FB_CURSOR_POSITION
+;	LoadW     r0,0
+;	LoadW     r1,0
+;	kerjsr    FB_CURSOR_POSITION
 
 	LoadW     r1,320
 	LoadW     r2,200

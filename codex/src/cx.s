@@ -2630,10 +2630,10 @@ init_user_shim
 	lda     r2H
 	sta     (r3),y
 
-	lda     #<(run_break_shim + break_offset)
-	sta     BRK_VECTOR
-	lda     #>(run_break_shim + break_offset)
-	sta     BRK_VECTOR+1
+;;	lda     #<(run_break_shim + break_offset)
+;;	sta     BRK_VECTOR
+;;	lda     #>(run_break_shim + break_offset)
+;;	sta     BRK_VECTOR+1
 	rts
 
 ;;

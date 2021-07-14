@@ -25,7 +25,7 @@ input_hex_bank_set         .byte 0
 input_hex_bank             .byte 0
 input_hex_value            .word 0
 
-SHIM_BUFFER_SIZE .set 16
+SHIM_BUFFER_SIZE .set 20
 
 	;; Shim code for running user program, needed to switch ROM bank prior to run.
 	;; Also contains BRK shim, again to switch ROM banks. This space can not be used

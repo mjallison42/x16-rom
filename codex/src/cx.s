@@ -2455,9 +2455,12 @@ handle_break
 	lda       FILE_SA
 	sta       brk_data_sa
 
-	PopW      r0
+	ExchW     r0
 	jsr       registers_save
 	
+	debugger
+	PopW      r0
+
 	;; Adjust PC to handle the goofy +2 increment of the brk instruction
 	jsr      debug_get_brk_adjustment
 	sta      M2L
@@ -2466,11 +2469,15 @@ handle_break
 	sbc      M2L
 	sta      brk_data_pc
 	sta      mem_last_addr          ; Set up so dis-assy will display correct spot
+	ldy      #12
+	sta      (r0),y
 	bcs      :+
 	dec      brk_data_pc+1
 :  
 	lda      brk_data_pc+1
 	sta      mem_last_addr+1        ; Set up so dis-assy will display correct spot
+	iny
+	sta      (r0),y
 
 	lda      #01
 	sta      brk_data_valid
@@ -2490,47 +2497,6 @@ handle_break
 	sta       BANK_CTRL_RAM
 
 	rts       ; RTI is executed by the break_shim
-
-;	jsr       break_loop
-
-;	jsr       restore_user_screen
-
-	;; Restore stack for an eventual RTI
-;	lda       bank_assy
-;	sta       BANK_CTRL_RAM 
-
-;	jsr       restore_vera_state
-	
-;	lda       brk_data_fa
-;	kerjsr    CHKIN
-
-;	lda       brk_data_pc+1
-;	pha
-;
-;	lda       brk_data_pc
-;	pha
-;
-;	lda       brk_data_psr
-;	pha
-;
-	
-;	jsr       registers_restore
-	
-	;; Restore A, X, Y, push PSR, PC
-;	ldx       brk_data_x
-;
-;	ldy       brk_data_y
-;
-;	lda       brk_data_a
-;	pha
-;	
-;	stz       brk_data_valid
-;
-;	lda       brk_bank
-;	sta       BANK_CTRL_RAM
-
-;	pla
-;	rts       ; RTI is executed by the break_shim
 
 ;;
 ;; Break sub menu
@@ -2630,10 +2596,10 @@ init_user_shim
 	lda     r2H
 	sta     (r3),y
 
-;;	lda     #<(run_break_shim + break_offset)
-;;	sta     BRK_VECTOR
-;;	lda     #>(run_break_shim + break_offset)
-;;	sta     BRK_VECTOR+1
+	lda     #<(run_break_shim + break_offset)
+	sta     BRK_VECTOR
+	lda     #>(run_break_shim + break_offset)
+	sta     BRK_VECTOR+1
 	rts
 
 ;;
@@ -2655,11 +2621,20 @@ break_shim:
 	jsr     JSRFAR_VECTOR
 	.word   handle_break
 	.byte   $7            ; Codex ROM bank
+	debugger
+	ply
+	plx
+	pla
 	rti
+	
 shim_size = * - user_shim - 1
 	
-	.if shim_size <> 16
-	.error .sprintf("SHIM buffer wrong size. cx_vars.s needs to reserve %d bytes.", shim_size)
+	.if shim_size > 20
+	.error .sprintf("SHIM buffer too small. cx_vars.s needs to reserve %d bytes.", shim_size)
+	.endif
+
+	.if shim_size < 20
+	.warning .sprintf("SHIM buffer too large. cx_vars.s only needs %d bytes.", shim_size)
 	.endif
 
 ;;

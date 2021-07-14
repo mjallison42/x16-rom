@@ -123,6 +123,17 @@
 	MODE_640_400 = $81
 	MODE_SWAP    = $ff
 	
+   .macro ExchW dst
+   plx
+   ply
+   lda dst
+   pha
+   lda dst+1
+   pha
+   stx dst+1
+   sty dst
+   .endmacro
+   
 	.macro ifEq16 r1,r2,dst
 	lda    r1
 	cmp    r2

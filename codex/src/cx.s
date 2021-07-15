@@ -177,8 +177,12 @@ main_65c02_ok
 	stz        orig_file_name
 	popBank
 
-	jsr     clear
+	tsx
+	stx     original_sp
 
+main_loop_reset
+	jsr     clear
+	
 main_loop      
 	lda     orig_color
 	sta     K_TEXT_COLOR
@@ -241,6 +245,7 @@ main_run_prgrm
 	popBank
 	
 	jsr     assy_run
+	debugger
 	bcs     :+
 	jsr     save_user_screen
 	kerjsr  CLALL
@@ -2458,7 +2463,6 @@ handle_break
 	ExchW     r0
 	jsr       registers_save
 	
-	debugger
 	PopW      r0
 
 	;; Adjust PC to handle the goofy +2 increment of the brk instruction
@@ -2477,6 +2481,17 @@ handle_break
 	lda      brk_data_pc+1
 	sta      mem_last_addr+1        ; Set up so dis-assy will display correct spot
 	iny
+	sta      (r0),y
+
+	; replace AXY on stack with pseudo break return values
+	ldy      #8
+	lda      #0
+	sta      (r0),y
+	iny
+	lda      #<break_loop
+	sta      (r0),y
+	iny
+	lda      #>break_loop
 	sta      (r0),y
 
 	lda      #01
@@ -2515,29 +2530,22 @@ break_in                                                        ; Oh no, a "brea
 	setDispatchTable break_dispatch_table
 
 	jsr        get_and_dispatch
-	bcs        break_abort
-
-	cmp        #F4
-	beq        break_exit
+	bcs        break_exit
 
 	bra        break_in
 
 break_exit
-	pushBankVar bank_assy
-	lda        #WATCH_NON_HIGHLIGHT
-	sta        watch_highlight
-	popBank
-	clc
-	rts
-
-break_abort
 	lda        bank_assy
+	
 	sta        BANK_CTRL_RAM
+	lda        #WATCH_NON_HIGHLIGHT
+	
+	sta        watch_highlight
 	stz        brk_data_valid
 	ldx        original_sp
 	txs
 	stz        BANK_CTRL_RAM
-	jmp        main_loop
+	jmp        main_loop_reset
 
 ;;
 ;; Add step-breaks for next instruction
@@ -2620,11 +2628,12 @@ break_offset = * - user_shim
 break_shim:	
 	jsr     JSRFAR_VECTOR
 	.word   handle_break
-	.byte   $7            ; Codex ROM bank
-	debugger
-	ply
-	plx
-	pla
+	.byte   CX_ROM
+	; handle_break munged the return address to be break_loop
+	; force the ROM selection. Other stack frame manipulations will
+	; take place inside of break_loop.
+	lda     #CX_ROM
+	sta     BANK_CTRL_ROM
 	rti
 	
 shim_size = * - user_shim - 1

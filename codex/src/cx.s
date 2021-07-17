@@ -245,7 +245,6 @@ main_run_prgrm
 	popBank
 	
 	jsr     assy_run
-	debugger
 	bcs     :+
 	jsr     save_user_screen
 	kerjsr  CLALL
@@ -2036,7 +2035,7 @@ str_saving_dbg       .byte "SAVING  : ", 0
 str_ext_dbg          .byte ".DBG", 0
 str_ext_dbi          .byte ".DBI", 0
 str_ext_txt          .byte ".TXT", 0
-str_watch_locations  .byte "WATCH LOCATIONS", 0
+str_watch_locations  .byte "WATCHES", 0
 str_zp_registers     .byte "REGISTERS", 0
 str_stack            .byte "STACK", 0
 str_vera             .byte "DISPLAY", 0
@@ -2532,6 +2531,9 @@ break_in                                                        ; Oh no, a "brea
 	jsr        get_and_dispatch
 	bcs        break_exit
 
+	cmp        #F4
+	beq		  break_continue
+
 	bra        break_in
 
 break_exit
@@ -2546,6 +2548,23 @@ break_exit
 	txs
 	stz        BANK_CTRL_RAM
 	jmp        main_loop_reset
+
+break_continue
+	jsr        registers_restore
+	
+	switchBankVar bank_assy
+   lda        brk_data_a
+	pha
+	
+	ldx        brk_data_x
+	ldy        brk_data_y
+
+	lda        brk_bank
+	sta        BANK_CTRL_RAM
+
+	pla
+	plp
+	rts
 
 ;;
 ;; Add step-breaks for next instruction

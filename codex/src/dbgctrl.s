@@ -377,6 +377,7 @@ registers_save
 ;; Restore user zero page locations r0 - r15, including x16 (scr coords)
 ;;
 registers_restore
+	debugger
 	pushBankVar bank_assy
 	;; src ptr
 	lda          #2
@@ -391,8 +392,7 @@ registers_restore
 	lda          (r1),y
 	sta          (r0),y
 	iny
-	tya
-	cmp          #(LAST_ZP_REGISTER - r0L + 1)
+	cpy          #(LAST_ZP_REGISTER - r0L + 1)
 	bne          :-
 	      
 	lda          reg_save

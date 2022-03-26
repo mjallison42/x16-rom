@@ -2448,7 +2448,10 @@ handle_break
 	iny
 
 	tsx
-	stx       brk_data_sp
+	txa
+	clc
+	adc       #$D ; Skip over the BRK stack stuff, user doesn't need to see that.
+	sta       brk_data_sp
 
 	lda       FILE_LA
 	sta       brk_data_la
@@ -2657,11 +2660,11 @@ break_shim:
 	
 shim_size = * - user_shim - 1
 	
-	.if shim_size > 20
+	.if shim_size > 22
 	.error .sprintf("SHIM buffer too small. cx_vars.s needs to reserve %d bytes.", shim_size)
 	.endif
 
-	.if shim_size < 20
+	.if shim_size < 22
 	.warning .sprintf("SHIM buffer too large. cx_vars.s only needs %d bytes.", shim_size)
 	.endif
 

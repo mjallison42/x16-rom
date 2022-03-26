@@ -102,7 +102,6 @@ stmdsp2	; statements
 	.word reset-1
 	.word cls-1
 	.word codex-1
-	.word codex-1
 	; functions
 	.word vpeek
 	.word mx

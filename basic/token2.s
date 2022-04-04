@@ -75,6 +75,7 @@ reslst2	.byt "MO", 'N' + $80
 	.byt "RESE", 'T' + $80
 	.byt "CL", 'S' + $80
 	.byt "CODE", 'X' + $80
+	.byt "LOCAT", 'E' + $80
 	.byt "VPEE", 'K' + $80
 	.byt "M", 'X' + $80
 	.byt "M", 'Y' + $80
@@ -83,8 +84,6 @@ reslst2	.byt "MO", 'N' + $80
 	.byt "HEX", $a4
 	.byt "BIN", $a4
 	.byt 0
-num_esc_statements = 19
-num_esc_functions = 7
 ;**************************************
 
 err01	.byt "TOO MANY FILE",$d3

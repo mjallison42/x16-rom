@@ -73,7 +73,6 @@
 	.endmacro
 
 	
-	.byte $42, $42, $42, $42
 main_entry
 	lda       K_TEXT_COLOR
 	sta       orig_color

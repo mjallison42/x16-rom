@@ -1,7 +1,7 @@
 MEMORY {
 	#include "x16.cfginc"
 
-    MAIN:     file = %O, define = yes, start = $C000, size = $3AE8, fill=yes  fillval=$00;
+    MAIN:     file = %O, define = yes, start = $C000, size = $3AE2, fill=yes  fillval=$A3;
     RWRAM:    file = "",               start = $0400, size = $3FF;
     BANK:     file = "",               start = $A000, size = $2000;
     CODEX_VECS: start = $FAE2, size = $001E, fill=yes, fillval=$A0;

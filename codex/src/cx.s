@@ -2642,7 +2642,7 @@ init_user_shim
 user_shim:
 	stz     BANK_CTRL_ROM
 	jsr     $ffff
-   lda     #CX_ROM
+   lda     #BANK_CODEX
 	sta     BANK_CTRL_ROM
    rts
 	
@@ -2650,21 +2650,21 @@ break_offset = * - user_shim
 break_shim:	
 	jsr     JSRFAR_VECTOR
 	.word   handle_break
-	.byte   CX_ROM
+	.byte   BANK_CODEX
 	; handle_break munged the return address to be break_loop
 	; force the ROM selection. Other stack frame manipulations will
 	; take place inside of break_loop.
-	lda     #CX_ROM
+	lda     #BANK_CODEX
 	sta     BANK_CTRL_ROM
 	rti
 	
 shim_size = * - user_shim - 1
 	
-	.if shim_size > 22
+	.if shim_size > 20
 	.error .sprintf("SHIM buffer too small. cx_vars.s needs to reserve %d bytes.", shim_size)
 	.endif
 
-	.if shim_size < 22
+	.if shim_size < 20
 	.warning .sprintf("SHIM buffer too large. cx_vars.s only needs %d bytes.", shim_size)
 	.endif
 

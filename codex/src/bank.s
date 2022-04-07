@@ -8,7 +8,7 @@
 	.psc02                    ; Enable 65c02 instructions
 	.feature labels_without_colons
 	
-	.exportzp BANK_CTRL_ROM, BANK_CTRL_RAM, KERNAL_ROM, CX_ROM
+	.exportzp BANK_CTRL_ROM, BANK_CTRL_RAM
 	.export bank_initialize, bank_pop, bank_push, set_dirty
 
 	.include "bank_assy.inc"
@@ -19,9 +19,6 @@
 
 	BANK_CTRL_RAM = $00
 	BANK_CTRL_ROM = $01
-
-	KERNAL_ROM = 0
-	CX_ROM     = 7
 
 bank_initialize
 	;; Make sure kernel swapped in so BRK instruction doesn't

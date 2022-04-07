@@ -8,6 +8,10 @@
 	.ifndef __X16_KERNEL__
 	__X16_KERNEL__=1
 
+   .ifndef BANK_KERNAL
+      .include "banks.inc"   ; X16 defs
+   .endif
+
 	.include "bank.inc"
 	.include "regs.inc"
 	.include "mac.inc"
@@ -230,13 +234,13 @@
 	.macro kerjsr addr
 	jsr    JSRFAR_VECTOR
 	.word  addr
-	.byte  KERNAL_ROM
+	.byte  BANK_KERNAL
 	.endmacro
 	
 	.macro aejsr addr
 	jsr    JSRFAR_VECTOR
 	.word  addr
-	.byte  CX_ROM
+	.byte  BANK_CODEX
 	.endmacro
 	
 	.endif

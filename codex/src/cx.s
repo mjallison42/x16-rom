@@ -1336,7 +1336,12 @@ assy_prt_block
 	stz      SCR_COL
 	jsr      vera_goto
 	ldx      #ASSY_LAST_COL
-	ldy      #(ROW_MAX + 1)
+	; determine height of box, AKA rest of screen
+	sec
+	lda      #(ROW_MAX + 1)
+	sbc	   SCR_ROW
+	tay
+	
 	sec
 	jsr      erase_box
 

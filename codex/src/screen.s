@@ -635,11 +635,7 @@ erase_box_row_loop
 	stx     SCR_COL
 	ldx     M1H
 
-	phx
-	phy
 	vgoto
-	ply
-	plx
 
 erase_box_col_loop
 	lda     #CHR_SPACE

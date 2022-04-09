@@ -1296,7 +1296,7 @@ rdhex2_read_the_string_for_preload
 rdhex2_read_the_string
 	jsr     read_string_with_prompt
 	bcc     @rdhex2_continue
-	jmp     rdhex_noerror_exit
+	jmp     rdhex_error_exit
 
 @rdhex2_continue
 	stz     input_hex_value

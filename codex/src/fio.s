@@ -8,7 +8,8 @@
 	.psc02                    ; Enable 65c02 instructions
 	.feature labels_without_colons
 
-	.export file_open,file_open_seq_read_str,file_open_seq_write_str,file_set_error,file_replace_ext,file_load_bank_a000
+	.export file_open,file_open_seq_read_str,file_open_seq_write_str,file_set_error,file_replace_ext
+	.export file_load_bank_a000, file_save_bank_a000
 
 	.include "bank.inc"
 	.include "bank_assy.inc"
@@ -175,50 +176,30 @@ file_replace_ext
 ;; Input r1 - ptr to new extension
 ;;       
 file_load_bank_a000
-	php
-
 	MoveW      r1,r2      ; r2 = extension ptr
 	LoadW      r1,input_string
-	LoadW      r3,file_open_seq_read_str
+	LoadW      r3,0
 	jsr        file_replace_ext
 	             
-	;; Rely on the preservation of r1
-	sta        r2L        ; a contains length of input_string
-	lda        #4
-	sta        r2H
-	jsr        file_open
-	bcs        file_load_debug_the_error
+	lda   #0              ; logical file number
+	ldx   #8              ; device number
+	ldy   #1              ; 0 == load to address in file
+	kerjsr SETLFS
 
-	ldx        #4
-	kerjsr     CHKIN
- 
-	LoadW      r0,$a000
-	kerjsr     BASIN ; Skip "load address" in file
-	kerjsr     BASIN
-	ldy        #0
+	ldx   #<input_string
+	ldy   #>input_string
+	lda   input_string_length
+	kerjsr SETNAME
 
-@file_load_bank_a000_loop
-	kerjsr     READST
-	bne        @file_load_bank_a000_exit
+	lda   #0
+	kerjsr LOAD
 	
-	kerjsr     BASIN ; Get one byte
-	sta        (r0),y
-		
-	iny
-	cpy        #0
-	bne        @file_load_bank_a000_loop
-	inc        r0H
-	bra        @file_load_bank_a000_loop
+	bcs   file_load_debug_the_error
+	jsr   file_set_error
 	
-@file_load_bank_a000_exit
-	lda        #4
-	kerjsr     CLOSE
-	ldx        #0
-	kerjsr     CHKIN
-
-	plp
-	bcc        @file_load_bank_a000_final_exit
-
+	dec        BANK_CTRL_RAM ; Load incremented the RAM bank
+	
+	; Check the meta tags for compatibility with current implementation
 	LoadW      r0,meta_tag_version
 	LoadW      r1,$A000
 	ldy        #0
@@ -232,14 +213,13 @@ file_load_bank_a000
 	iny
 	cpy        #6
 	bne        @file_load_bank_a000_chk_loop
-	
+
 @file_load_bank_a000_final_exit
 	clc
 	rts
 
 file_load_debug_the_error
 	jsr      file_set_error
-	plp
 	sec
 	rts
 
@@ -251,4 +231,34 @@ file_load_debug_bad_dbg
 	sec
 	rts
 
-str_debug_incompat .byte "INVALIDT DBG INFO", 0
+str_debug_incompat .byte "INVALID DBG INFO", 0
+
+;
+; Save bank A000-BFFF, to same filename as entered for the main program, but extension is passed in via r1
+; Output C == 0: Save successful, C == 1: Save failed, error code in A
+;
+file_save_bank_a000
+	MoveW  r1,r2    ; r2 = extension string
+	LoadW  r1,input_string
+	LoadW  r3,0
+	jsr   file_replace_ext
+	
+	lda   #0              ; logical file number
+	ldx   #8              ; device number
+	ldy   #1              ; 0 == load to address in file
+	kerjsr SETLFS
+
+	ldx   #<input_string
+	ldy   #>input_string
+	lda   input_string_length
+	kerjsr SETNAME
+	
+	jsr   meta_get_region
+	IncW   r1
+
+	LoadW r0,$A000
+	ldx   #$00
+	ldy   #$C0
+	lda   #r0
+	kerjsr SAVE
+	rts

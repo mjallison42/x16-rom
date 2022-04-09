@@ -2172,64 +2172,6 @@ file_save
 	sec
 	rts
 
-;
-; Save bank A000-BFFF, to same filename as entered for the main program, but extension is passed in via r1
-; Output C == 0: Save successful, C == 1: Save failed, error code in A
-;
-file_save_bank_a000
-	;; Assume the SETLFS was called in saving the core program.                
-
-	MoveW  r1,r2    ; r2 = extension string
-	LoadW  r1,input_string
-	LoadW  r3,file_open_seq_write_str
-	jsr   file_replace_ext
-	
-	;; Rely on r1 being preserved
-	lda    input_string_length
-	sta    r2L
-	lda    #4
-	sta    r2H
-	jsr    file_open
-	bcs    @file_save_bank_a000_error
-	
-	ldx    #4
-	kerjsr  CHKOUT
-
-	LoadW  r0,$A000
-	ldy    #0
-	
-	;;  Fake the load address, as if SAVE was called
-	lda    r0L
-	kerjsr CHROUT
-	lda    r0H
-	kerjsr CHROUT
-
-@file_save_bank_a000_loop
-	lda    (r0),y
-	kerjsr CHROUT
-	iny
-	cpy    #0
-	bne    @file_save_bank_a000_loop
-	inc    r0H
-	lda    r0H
-	cmp    #$C0
-	bne    @file_save_bank_a000_loop
-
-@file_save_bank_a000_exit
-	lda    #4
-	kerjsr CLOSE
-
-	ldx    #3
-	kerjsr CHKOUT
-
-	clc
-	rts
-
-@file_save_bank_a000_error
-	jsr    file_set_error
-	sec
-	rts
-
 ;;
 ;; Load program 
 ;; Functional module to load a program, and attempt to load the debug information
@@ -2281,7 +2223,6 @@ exe_load_next_step
 	callR1     prtstr_at_xy,str_loading_dbg
 
 	pushBankVar bank_meta_l
-	sec
 	callR1     file_load_bank_a000,str_ext_dbg
 	bcs        exe_load_error
 	jsr        exe_load_setup_dbg
@@ -2289,7 +2230,6 @@ exe_load_next_step
 
 	callR1      prtstr,str_loading_dbi
 	pushBankVar bank_meta_i
-	sec
 	callR1      file_load_bank_a000,str_ext_dbi
 	bcs         exe_load_error
 	popBank

@@ -55,4 +55,6 @@ vera_goto
 	clc
 	adc    #$B0
 	sta    VERA_ADDR_MID
+	lda    #$11
+	sta    VERA_ADDR_HI
 	rts

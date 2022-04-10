@@ -854,7 +854,7 @@ save_restore_user_screen_row
 restore_user_screen
 	pushBankVar bank_assy
 	lda       screen_save_mode
-	sec
+	clc
 	kerjsr    SCRMOD
 
 	LoadW     r0,0

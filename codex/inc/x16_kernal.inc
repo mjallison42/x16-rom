@@ -120,9 +120,13 @@
 	
 	JSRFAR_VECTOR = $FF6E
 	
-	MODE_40_30   = $00
-	MODE_80_30   = $02
-	MODE_80_60   = $02
+	MODE_80_60   = $00
+	MODE_80_30   = $01
+	MODE_40_60   = $02
+	MODE_40_30   = $03
+	MODE_40_15   = $04
+	MODE_20_30   = $05
+	MODE_20_15   = $06
 	MODE_320_240 = $80
 	MODE_640_400 = $81
 	MODE_SWAP    = $ff

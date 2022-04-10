@@ -187,6 +187,7 @@ main_loop
 	lda     orig_color
 	sta     K_TEXT_COLOR
 
+	jsr     clear
 	callR1  print_header,main_header
 
 	jsr     main_display_core
@@ -250,12 +251,12 @@ main_run_prgrm
 	kerjsr  CLALL
 	callR1  wait_for_keypress,0
 
-	clc
+	sec
 	kerjsr  SCRMOD
 	cmp     #MODE_80_60
 	beq     :+
 	lda     #MODE_80_60
-	sec
+	clc
 	kerjsr  SCRMOD   ; back to 80 col
 	jsr        clear
 
@@ -372,14 +373,15 @@ view_mem
 	rts
 
 view_user_screen
+	rts ; disabled for V0,92
 	jsr     restore_user_screen
 	callR1  wait_for_keypress,0
-	clc
+	sec
 	kerjsr  SCRMOD
 	cmp     #MODE_80_60
 	beq     :+
 	lda     #MODE_80_60
-	sec
+	clc
 	kerjsr  SCRMOD
 :
 	jsr     clear
@@ -2589,6 +2591,7 @@ user_shim:
 	jsr     $ffff
    lda     #BANK_CODEX
 	sta     BANK_CTRL_ROM
+	clc
    rts
 	
 break_offset = * - user_shim
@@ -2605,11 +2608,11 @@ break_shim:
 	
 shim_size = * - user_shim - 1
 	
-	.if shim_size > 20
+	.if shim_size > 22
 	.error .sprintf("SHIM buffer too small. cx_vars.s needs to reserve %d bytes.", shim_size)
 	.endif
 
-	.if shim_size < 20
+	.if shim_size < 22
 	.warning .sprintf("SHIM buffer too large. cx_vars.s only needs %d bytes.", shim_size)
 	.endif
 
